@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-extraneous-class -- disabled */
-
 import { EventLog } from "@/models/logger/EventLog";
 import { ExceptionLog } from "@/models/logger/ExceptionLog";
 import { MongoService } from "@/services/mongo/MongoService";

@@ -1,7 +1,8 @@
 import express from "express";
 import core from "express-serve-static-core";
+import { IBucklesApplication } from "./IBucklesApplication";
 
-export class BucklesApplication {
+export class BucklesApplication implements IBucklesApplication {
     /**
      * The application instance, which houses and handles all CRUD requests
      */
@@ -14,9 +15,7 @@ export class BucklesApplication {
         this.app = express();
     }
 
-    /**
-     * Starts the application, app begins listening on the environment port
-     */
+    /** @inheritdoc */
     public start(): void {
         this.app.listen(process.env.PORT, () => {
             console.log(`Listening on port ${process.env.PORT}`);

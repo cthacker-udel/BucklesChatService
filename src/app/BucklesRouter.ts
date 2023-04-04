@@ -28,6 +28,7 @@ export class BucklesRouter implements IBucklesRouter {
         this.prefix = _prefix;
     }
 
+    /** @inheritdoc */
     public processRoutes = (_routes: BucklesRoutes) => {
         Object.keys(_routes).forEach((eachMethod) => {
             const foundRoutes = _routes[eachMethod];

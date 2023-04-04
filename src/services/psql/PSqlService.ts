@@ -1,6 +1,6 @@
 import { Client } from "pg";
 
-class PSqlService {
+export class PSqlService {
     client: Client;
 
     public constructor() {

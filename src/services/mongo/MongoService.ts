@@ -1,5 +1,8 @@
 import { MongoClient, Collection, Db } from "mongodb";
 
+/**
+ * Instance of the MongoService, which houses all the logic of accessing the mongo database
+ */
 export class MongoService {
     /**
      * The mongo client instance
@@ -13,6 +16,9 @@ export class MongoService {
         this.client = new MongoClient(process.env.MONGO_URI ?? "");
     }
 
+    /**
+     * Checks if the client is instantiated, and if it is not, then throws an error
+     */
     public checkClient() {
         if (this.client === undefined) {
             throw new Error(

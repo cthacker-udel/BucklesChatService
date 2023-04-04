@@ -38,7 +38,7 @@ export class BucklesRouter implements IBucklesRouter {
                         this.router.get(
                             `${this.prefix}${eachRoute.endpoint}`,
                             eachRoute.handler,
-                            [...eachRoute.middleware],
+                            [...(eachRoute.middleware ?? [])],
                         );
                         break;
                     }
@@ -46,7 +46,7 @@ export class BucklesRouter implements IBucklesRouter {
                         this.router.put(
                             `${this.prefix}${eachRoute.endpoint}`,
                             eachRoute.handler,
-                            [...eachRoute.middleware],
+                            [...(eachRoute.middleware ?? [])],
                         );
                         break;
                     }
@@ -54,7 +54,7 @@ export class BucklesRouter implements IBucklesRouter {
                         this.router.post(
                             `${this.prefix}${eachRoute.endpoint}`,
                             eachRoute.handler,
-                            [...eachRoute.middleware],
+                            [...(eachRoute.middleware ?? [])],
                         );
                         break;
                     }
@@ -62,7 +62,7 @@ export class BucklesRouter implements IBucklesRouter {
                         this.router.delete(
                             `${this.prefix}${eachRoute.endpoint}`,
                             eachRoute.handler,
-                            [...eachRoute.middleware],
+                            [...(eachRoute.middleware ?? [])],
                         );
                         break;
                     }
@@ -70,7 +70,7 @@ export class BucklesRouter implements IBucklesRouter {
                         this.router.options(
                             `${this.prefix}${eachRoute.endpoint}`,
                             eachRoute.handler,
-                            [...eachRoute.middleware],
+                            [...(eachRoute.middleware ?? [])],
                         );
                         break;
                     }

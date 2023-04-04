@@ -7,7 +7,6 @@ export interface IBaseController {
     /**
      * Creates a new router instance provided the routes to instantiate it with
      *
-     * @param _routes - The routes to instantiate the router with
      * @throws If the internal routes member is undefined, the service cannot instantiate the expressJS router.
      * @returns The created router instance
      */

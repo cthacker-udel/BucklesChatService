@@ -5,7 +5,7 @@ import { BaseController } from "../base/BaseController";
 import { PSqlService } from "src/services/psql/PSqlService";
 import { MongoService } from "src/services/mongo/MongoService";
 import { ApiResponse } from "src/models/api/response/ApiResponse";
-import { exceptionToExceptionLog } from "src/helpers/exceptionToExceptionLog";
+import { exceptionToExceptionLog } from "src/helpers/logger/exceptionToExceptionLog";
 import { ApiErrorInfo } from "src/models/api/errorInfo/ApiErrorInfo";
 import { ApiErrorCodes } from "src/constants/enums/ApiErrorCodes";
 
@@ -32,7 +32,7 @@ export class UserController extends BaseController implements IUserController {
         _loggerController: LoggerController,
         _mongoService: MongoService,
     ) {
-        super(process.env.USER_TABLE);
+        super(process.env.USER_TABLE, "user");
         this.loggerController = _loggerController;
         this.mongoService = _mongoService;
         this.psqlClient = new PSqlService();

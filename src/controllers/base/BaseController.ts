@@ -51,13 +51,13 @@ export class BaseController implements IBaseController {
     }
 
     /** @inheritdoc */
-    public generateRouter = (_routes: BucklesRoutes): BucklesRouter => {
+    public generateRouter = (): BucklesRouter => {
         if (Object.keys(this.routes).length === 0) {
             throw new Error("Cannot instantiate router if routes is empty");
         }
 
         const createdRouter = new BucklesRouter(Router(), this.prefix);
-        createdRouter.processRoutes(_routes);
+        createdRouter.processRoutes(this.routes);
         return createdRouter;
     };
 

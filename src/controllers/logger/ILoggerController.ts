@@ -1,34 +1,21 @@
-import { ApiResponse } from "src/models/api/response/ApiResponse";
-import { EventLog } from "src/@types/logger/EventLog";
-import { ExceptionLog } from "src/@types/logger/ExceptionLog";
-import { MongoService } from "src/services/mongo/MongoService";
+import { Request, Response } from "express";
 
 export interface ILoggerController {
     /**
      * Logs an exception in the mongo collection
      *
-     * @param id - The id for the transaction used for tracing purposes
-     * @param mongoService - The mongo service instantiated from the root application
-     * @param exceptionLog - The exception log being upserted into the database
+     * @param _request - The client request
+     * @param _response - The response sent to the client
      * @returns Whether the exception was logged successfully or not
      */
-    LogException: (
-        _id: string,
-        _mongoService: MongoService,
-        _exceptionLog: ExceptionLog,
-    ) => Promise<ApiResponse<boolean>>;
+    LogException: (_request: Request, _response: Response) => Promise<void>;
 
     /**
      * Logs an event in the mongo collection
      *
-     * @param id - The id for the transaction used for tracing purposes
-     * @param mongoService - The mongo service instantiated from the root application
-     * @param eventLog - The event log being upserted into the database
+     * @param _request - The client request
+     * @param _response - The response sent to the client
      * @returns Whether the event log was logged successfully or not
      */
-    LogEvent: (
-        _id: string,
-        _mongoService: MongoService,
-        _eventLog: EventLog,
-    ) => Promise<ApiResponse<boolean>>;
+    LogEvent: (_request: Request, _response: Response) => Promise<void>;
 }

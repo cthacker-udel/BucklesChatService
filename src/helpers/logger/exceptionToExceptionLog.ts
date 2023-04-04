@@ -1,4 +1,4 @@
-import { ExceptionLog } from "src/@types/logger/ExceptionLog";
+import { ExceptionLog } from "../../@types/logger/ExceptionLog";
 
 export const exceptionToExceptionLog = (
     error: unknown,

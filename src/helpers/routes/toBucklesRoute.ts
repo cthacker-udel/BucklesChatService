@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { BucklesRoute } from "src/@types/routes/BucklesRoute";
+import { BucklesRoute } from "../../@types/routes/BucklesRoute";
 
 export const toBucklesRoute = (
     endpoint: string,

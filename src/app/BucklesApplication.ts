@@ -1,6 +1,8 @@
 import express from "express";
 import core from "express-serve-static-core";
 import { IBucklesApplication } from "./IBucklesApplication";
+import { MongoService } from "../services/mongo/MongoService";
+import { LoggerController } from "../controllers/logger/LoggerController";
 
 export class BucklesApplication implements IBucklesApplication {
     /**
@@ -20,5 +22,9 @@ export class BucklesApplication implements IBucklesApplication {
         this.app.listen(process.env.PORT, () => {
             console.log(`Listening on port ${process.env.PORT}`);
         });
+        const mongoService = new MongoService();
+
+        const loggerController = new LoggerController(mongoService);
+        this.app.use(loggerController.generateRouter());
     }
 }

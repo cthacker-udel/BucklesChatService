@@ -1,16 +1,18 @@
 /* eslint-disable @typescript-eslint/no-misused-promises -- disabled */
 /* eslint-disable @typescript-eslint/brace-style -- disabled */
 
-import { MongoService } from "src/services/mongo/MongoService";
 import { ILoggerController } from "./ILoggerController";
-import { ExceptionLog } from "src/@types/logger/ExceptionLog";
-import { EventLog } from "src/@types/logger/EventLog";
+
 import { BaseController } from "../base/BaseController";
-import { toBucklesRoute } from "src/helpers/routes/toBucklesRoute";
+
 import { Request, Response } from "express";
-import { BucklesRouteType } from "src/constants/enums/BucklesRouteType";
-import { LoggerService } from "src/services/logger/LoggerService";
-import { getIdFromRequest } from "src/helpers/api/getIdFromRequest";
+import { MongoService } from "../../services/mongo/MongoService";
+import { LoggerService } from "../../services/logger/LoggerService";
+import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
+import { toBucklesRoute } from "../../helpers/routes/toBucklesRoute";
+import { getIdFromRequest } from "../../helpers/api/getIdFromRequest";
+import { ExceptionLog } from "../../@types/logger/ExceptionLog";
+import { EventLog } from "../../@types/logger/EventLog";
 
 export class LoggerController
     extends BaseController
@@ -34,7 +36,10 @@ export class LoggerController
     public constructor(_mongoService: MongoService) {
         super(undefined, "logger");
         super.addRoutes(
-            [toBucklesRoute("exception", this.LogException)],
+            [
+                toBucklesRoute("exception", this.LogException),
+                toBucklesRoute("event", this.LogEvent),
+            ],
             BucklesRouteType.POST,
         );
         this.mongoService = _mongoService;

@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { BucklesRoutes } from "src/@types/routes/BucklesRoutes";
-import { BucklesRouter } from "src/app/BucklesRouter";
+
 import { IBaseController } from "./IBaseControllers";
-import { BucklesRoute } from "src/@types/routes/BucklesRoute";
-import { BucklesRouteType } from "src/constants/enums/BucklesRouteType";
+import { BucklesRoutes } from "../../@types/routes/BucklesRoutes";
+import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
+import { BucklesRouter } from "../../app/BucklesRouter";
+import { BucklesRoute } from "../../@types/routes/BucklesRoute";
 
 /**
  * The base class for all controllers, their minimum requirements to function properly
@@ -51,14 +52,14 @@ export class BaseController implements IBaseController {
     }
 
     /** @inheritdoc */
-    public generateRouter = (): BucklesRouter => {
+    public generateRouter = (): Router => {
         if (Object.keys(this.routes).length === 0) {
             throw new Error("Cannot instantiate router if routes is empty");
         }
 
         const createdRouter = new BucklesRouter(Router(), this.prefix);
         createdRouter.processRoutes(this.routes);
-        return createdRouter;
+        return createdRouter.router;
     };
 
     /** @inheritdoc */

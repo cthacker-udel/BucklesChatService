@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { BucklesRoute } from "src/@types/routes/BucklesRoute";
-import { BucklesRoutes } from "src/@types/routes/BucklesRoutes";
 import { IBucklesRouter } from "./IBucklesRouter";
+import { BucklesRoutes } from "../@types/routes/BucklesRoutes";
+import { BucklesRoute } from "../@types/routes/BucklesRoute";
 
 /**
  * Wrapper over expressJs router

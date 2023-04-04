@@ -1,7 +1,7 @@
-import { BucklesRoute } from "src/@types/routes/BucklesRoute";
-import { BucklesRoutes } from "src/@types/routes/BucklesRoutes";
-import { BucklesRouter } from "src/app/BucklesRouter";
-import { BucklesRouteType } from "src/constants/enums/BucklesRouteType";
+import { Router } from "express";
+import { BucklesRoutes } from "../../@types/routes/BucklesRoutes";
+import { BucklesRoute } from "../../@types/routes/BucklesRoute";
+import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
 
 export interface IBaseController {
     /**
@@ -10,7 +10,7 @@ export interface IBaseController {
      * @throws If the internal routes member is undefined, the service cannot instantiate the expressJS router.
      * @returns The created router instance
      */
-    generateRouter: (_routes: BucklesRoutes) => BucklesRouter;
+    generateRouter: (_routes: BucklesRoutes) => Router;
 
     /**
      * Adds all routes specified by `_routes` to the API method specified by `_type` to the route instance calling this function

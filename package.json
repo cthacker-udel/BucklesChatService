@@ -8,8 +8,8 @@
         "clean": "rimraf dist",
         "full-clean": "rimraf dist node_modules package-lock.json",
         "build": "tsc -p tsconfig.json",
-        "start": "node dist/src/index.js",
-        "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/src/index.js\"",
+        "start": "node dist/index.js",
+        "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\"",
         "reset": "npm run clean && npm run build && npm run start"
     },
     "keywords": [],

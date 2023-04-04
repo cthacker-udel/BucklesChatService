@@ -1,4 +1,4 @@
-import { BucklesRoutes } from "src/@types/routes/BucklesRoutes";
+import { BucklesRoutes } from "../@types/routes/BucklesRoutes";
 
 export interface IBucklesRouter {
     /**

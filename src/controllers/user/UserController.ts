@@ -2,12 +2,11 @@ import { IUserController } from "./IUserController";
 import { LoggerController } from "../logger/LoggerController";
 
 import { BaseController } from "../base/BaseController";
-import { PSqlService } from "src/services/psql/PSqlService";
-import { MongoService } from "src/services/mongo/MongoService";
-import { ApiResponse } from "src/models/api/response/ApiResponse";
-import { exceptionToExceptionLog } from "src/helpers/logger/exceptionToExceptionLog";
-import { ApiErrorInfo } from "src/models/api/errorInfo/ApiErrorInfo";
-import { ApiErrorCodes } from "src/constants/enums/ApiErrorCodes";
+import { PSqlService } from "../../services/psql/PSqlService";
+import { MongoService } from "../../services/mongo/MongoService";
+import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
+import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -63,11 +62,11 @@ export class UserController extends BaseController implements IUserController {
                 foundUserQuery.rowCount > 0,
             );
         } catch (error: unknown) {
-            await this.loggerController.LogException(
-                id,
-                this.mongoService,
-                exceptionToExceptionLog(error, id),
-            );
+            // await this.loggerController.LogException(
+            //     id,
+            //     this.mongoService,
+            //     exceptionToExceptionLog(error, id),
+            // );
             return new ApiResponse<boolean>(id).setApiError(
                 new ApiErrorInfo(id).initException(
                     error,

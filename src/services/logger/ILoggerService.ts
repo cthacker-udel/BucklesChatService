@@ -1,6 +1,6 @@
-import { EventLog } from "src/@types/logger/EventLog";
-import { ExceptionLog } from "src/@types/logger/ExceptionLog";
-import { ApiResponse } from "src/models/api/response/ApiResponse";
+import { EventLog } from "../../@types/logger/EventLog";
+import { ExceptionLog } from "../../@types/logger/ExceptionLog";
+import { ApiResponse } from "../../models/api/response/ApiResponse";
 
 export interface ILoggerService {
     /**

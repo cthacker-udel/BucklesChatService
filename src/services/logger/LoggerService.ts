@@ -1,8 +1,8 @@
-import { ExceptionLog } from "src/@types/logger/ExceptionLog";
-import { ApiResponse } from "src/models/api/response/ApiResponse";
+import { EventLog } from "../../@types/logger/EventLog";
+import { ExceptionLog } from "../../@types/logger/ExceptionLog";
+import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { MongoService } from "../mongo/MongoService";
 import { ILoggerService } from "./ILoggerService";
-import { EventLog } from "src/@types/logger/EventLog";
 
 /**
  * Handles all business logic concerning the logger database

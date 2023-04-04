@@ -1,10 +1,10 @@
 /* eslint-disable class-methods-use-this -- disabled */
 
-import { ExceptionLog } from "@/models/logger/ExceptionLog";
+import { MongoService } from "src/services/mongo/MongoService";
 import { ILoggerController } from "./ILoggerController";
-import { MongoService } from "@/services/mongo/MongoService";
-import { EventLog } from "@/models/logger/EventLog";
-import { ApiResponse } from "@/models/api/response/ApiResponse";
+import { ExceptionLog } from "src/@types/logger/ExceptionLog";
+import { ApiResponse } from "src/models/api/response/ApiResponse";
+import { EventLog } from "src/@types/logger/EventLog";
 
 export class LoggerController implements ILoggerController {
     /** @inheritdoc */

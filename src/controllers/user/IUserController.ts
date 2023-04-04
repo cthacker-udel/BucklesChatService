@@ -1,4 +1,4 @@
-import { ApiResponse } from "@/models/api/response/ApiResponse";
+import { ApiResponse } from "src/models/api/response/ApiResponse";
 
 export interface IUserController {
     /**

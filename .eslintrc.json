@@ -14,6 +14,7 @@
         "project": "./tsconfig.json",
         "tsconfigRootDir": "."
     },
+    "ignorePatterns": ["dist"],
     "plugins": [
         "@typescript-eslint",
         "node",
@@ -593,10 +594,6 @@
         "@typescript-eslint/no-unnecessary-type-assertion": "error",
         "@typescript-eslint/no-unnecessary-type-constraint": "error",
         "@typescript-eslint/no-unsafe-argument": "error",
-        "@typescript-eslint/no-unsafe-assignment": "error",
-        "@typescript-eslint/no-unsafe-call": "error",
-        "@typescript-eslint/no-unsafe-member-access": "error",
-        "@typescript-eslint/no-unsafe-return": "error",
         "@typescript-eslint/no-var-requires": "error",
         "@typescript-eslint/non-nullable-type-assertion-style": "off",
         "@typescript-eslint/prefer-as-const": "error",

@@ -1,4 +1,4 @@
-import { ApiErrorCodes } from "@/constants/enums/ApiErrorCodes";
+import { ApiErrorCodes } from "src/constants/enums/ApiErrorCodes";
 
 /**
  * Represents an logged error in the database

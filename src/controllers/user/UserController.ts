@@ -1,12 +1,13 @@
-import { PSqlService } from "@/services/psql/PSqlService";
 import { IUserController } from "./IUserController";
 import { LoggerController } from "../logger/LoggerController";
-import { MongoService } from "@/services/mongo/MongoService";
-import { exceptionToExceptionLog } from "@/helpers/exceptionToExceptionLog";
-import { ApiResponse } from "@/models/api/response/ApiResponse";
+
 import { BaseController } from "../base/BaseController";
-import { ApiErrorInfo } from "@/models/api/errorInfo/ApiErrorInfo";
-import { ApiErrorCodes } from "@/constants/enums/ApiErrorCodes";
+import { PSqlService } from "src/services/psql/PSqlService";
+import { MongoService } from "src/services/mongo/MongoService";
+import { ApiResponse } from "src/models/api/response/ApiResponse";
+import { exceptionToExceptionLog } from "src/helpers/exceptionToExceptionLog";
+import { ApiErrorInfo } from "src/models/api/errorInfo/ApiErrorInfo";
+import { ApiErrorCodes } from "src/constants/enums/ApiErrorCodes";
 
 export class UserController extends BaseController implements IUserController {
     /**

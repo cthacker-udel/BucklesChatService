@@ -1,7 +1,7 @@
-import { ApiResponse } from "@/models/api/response/ApiResponse";
-import { EventLog } from "@/models/logger/EventLog";
-import { ExceptionLog } from "@/models/logger/ExceptionLog";
-import { MongoService } from "@/services/mongo/MongoService";
+import { ApiResponse } from "src/models/api/response/ApiResponse";
+import { EventLog } from "src/@types/logger/EventLog";
+import { ExceptionLog } from "src/@types/logger/ExceptionLog";
+import { MongoService } from "src/services/mongo/MongoService";
 
 export interface ILoggerController {
     /**

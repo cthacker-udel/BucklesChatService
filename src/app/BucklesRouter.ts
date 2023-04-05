@@ -29,14 +29,14 @@ export class BucklesRouter implements IBucklesRouter {
     }
 
     /** @inheritdoc */
-    public processRoutes = (_routes: BucklesRoutes) => {
+    public processRoutes = (_routes: BucklesRoutes): void => {
         Object.keys(_routes).forEach((eachMethod) => {
             const foundRoutes = _routes[eachMethod];
             foundRoutes.forEach((eachRoute: BucklesRoute) => {
                 switch (eachMethod) {
                     case "get": {
                         this.router.get(
-                            `${this.prefix}${eachRoute.endpoint}`,
+                            `/${this.prefix}/${eachRoute.endpoint}`,
                             eachRoute.handler,
                             [...(eachRoute.middleware ?? [])],
                         );
@@ -44,7 +44,7 @@ export class BucklesRouter implements IBucklesRouter {
                     }
                     case "put": {
                         this.router.put(
-                            `${this.prefix}${eachRoute.endpoint}`,
+                            `/${this.prefix}/${eachRoute.endpoint}`,
                             eachRoute.handler,
                             [...(eachRoute.middleware ?? [])],
                         );
@@ -52,7 +52,7 @@ export class BucklesRouter implements IBucklesRouter {
                     }
                     case "post": {
                         this.router.post(
-                            `${this.prefix}${eachRoute.endpoint}`,
+                            `/${this.prefix}/${eachRoute.endpoint}`,
                             eachRoute.handler,
                             [...(eachRoute.middleware ?? [])],
                         );
@@ -60,7 +60,7 @@ export class BucklesRouter implements IBucklesRouter {
                     }
                     case "delete": {
                         this.router.delete(
-                            `${this.prefix}${eachRoute.endpoint}`,
+                            `/${this.prefix}/${eachRoute.endpoint}`,
                             eachRoute.handler,
                             [...(eachRoute.middleware ?? [])],
                         );
@@ -68,7 +68,7 @@ export class BucklesRouter implements IBucklesRouter {
                     }
                     case "options": {
                         this.router.options(
-                            `${this.prefix}${eachRoute.endpoint}`,
+                            `/${this.prefix}/${eachRoute.endpoint}`,
                             eachRoute.handler,
                             [...(eachRoute.middleware ?? [])],
                         );

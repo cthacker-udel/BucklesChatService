@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 import { BucklesRoutes } from "../../@types/routes/BucklesRoutes";
 import { BucklesRoute } from "../../@types/routes/BucklesRoute";
 import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
@@ -23,4 +23,13 @@ export interface IBaseController {
         _routes: BucklesRoute[],
         _type: BucklesRouteType,
     ) => IBaseController;
+
+    /**
+     * Common status check for all controllers utilizing this base class
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns Whether or not the service is up
+     */
+    statusCheck: (_request: Request, _response: Response) => void;
 }

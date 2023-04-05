@@ -1,10 +1,11 @@
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 
 import { IBaseController } from "./IBaseControllers";
 import { BucklesRoutes } from "../../@types/routes/BucklesRoutes";
 import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
 import { BucklesRouter } from "../../app/BucklesRouter";
 import { BucklesRoute } from "../../@types/routes/BucklesRoute";
+import { toBucklesRoute } from "../../helpers/routes/toBucklesRoute";
 
 /**
  * The base class for all controllers, their minimum requirements to function properly
@@ -26,6 +27,11 @@ export class BaseController implements IBaseController {
     public routes: BucklesRoutes;
 
     /**
+     * The function to determine if systems are online
+     */
+    public statusFunction: () => void;
+
+    /**
      * _K operates on a set of singleton types (enum) and produces a new type of each singleton as a property name
      * This allows for me to take the enum and map each of it's values into a property name for the object, which then allows
      * me to complete the mapping.
@@ -45,26 +51,53 @@ export class BaseController implements IBaseController {
      * @param _tableName - (optional) The name of the PSQL table this controller maps to
      * @param _prefix - (optional) The api route prefix this controller acts under
      */
-    public constructor(_tableName?: string, _prefix?: string) {
+    public constructor(
+        _tableName?: string,
+        _prefix?: string,
+        _statusFunction?: () => void,
+    ) {
         this.table = _tableName ?? "";
         this.prefix = _prefix ?? "";
-        this.routes = {};
+        this.routes = { get: [toBucklesRoute("status", this.statusCheck)] };
+        this.statusFunction = _statusFunction ?? (() => {});
+    }
+
+    /**
+     * Sets the status function of the BaseController instance
+     *
+     * @param _statusFunction - The status function used to determine if the services are online
+     * @returns The modified instance
+     */
+    public setStatusFunction(_statusFunction: () => void): IBaseController {
+        this.statusFunction = _statusFunction;
+        return this;
     }
 
     /** @inheritdoc */
-    public generateRouter = (): Router => {
-        if (Object.keys(this.routes).length === 0) {
-            throw new Error("Cannot instantiate router if routes is empty");
+    public statusCheck = (_request: Request, response: Response): void => {
+        try {
+            this.statusFunction();
+            response.status(200);
+            response.send({});
+        } catch (error: unknown) {
+            response.status(500);
+            response.send({ status: (error as Error).message });
         }
-
-        const createdRouter = new BucklesRouter(Router(), this.prefix);
-        createdRouter.processRoutes(this.routes);
-        return createdRouter.router;
     };
 
     /** @inheritdoc */
-    public addRoutes = (_routes: BucklesRoute[], _type: BucklesRouteType) => {
+    public generateRouter(): Router {
+        if (Object.keys(this.routes).length === 0) {
+            throw new Error("Cannot instantiate router if routes is empty");
+        }
+        const createdRouter = new BucklesRouter(Router(), this.prefix);
+        createdRouter.processRoutes(this.routes);
+        return createdRouter.router;
+    }
+
+    /** @inheritdoc */
+    public addRoutes(_routes: BucklesRoute[], _type: BucklesRouteType) {
         this.routes[this.routeTypeKeyMapping[_type]] = _routes;
         return this;
-    };
+    }
 }

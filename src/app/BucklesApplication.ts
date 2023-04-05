@@ -19,12 +19,13 @@ export class BucklesApplication implements IBucklesApplication {
 
     /** @inheritdoc */
     public start(): void {
-        this.app.listen(process.env.PORT, () => {
-            console.log(`Listening on port ${process.env.PORT}`);
-        });
         const mongoService = new MongoService();
 
         const loggerController = new LoggerController(mongoService);
+
         this.app.use(loggerController.generateRouter());
+        this.app.listen(process.env.PORT, () => {
+            console.log(`Listening on port ${process.env.PORT}`);
+        });
     }
 }

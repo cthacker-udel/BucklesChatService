@@ -47,6 +47,17 @@ export class UserController extends BaseController implements IUserController {
                     }`,
                 );
             });
+        super.setStatusFunction(() => {
+            if (this.psqlClient.client.database === undefined) {
+                throw new Error("PSQL Client is not connected");
+            }
+            if (this.mongoService === undefined) {
+                throw new Error("Mongo Client is not connected");
+            }
+            if (this.loggerController === undefined) {
+                throw new Error("Logger Controller is not connected");
+            }
+        });
     }
 
     /** @inheritdoc */

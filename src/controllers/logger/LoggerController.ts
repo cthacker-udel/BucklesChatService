@@ -44,6 +44,15 @@ export class LoggerController
         );
         this.mongoService = _mongoService;
         this.loggerService = new LoggerService(this.mongoService);
+
+        super.setStatusFunction(() => {
+            if (this.mongoService === undefined) {
+                throw new Error("Mongo Service is not online");
+            }
+            if (this.loggerService === undefined) {
+                throw new Error("Logger Service is not online");
+            }
+        });
     }
 
     /** @inheritdoc */

@@ -1,12 +1,15 @@
+/* eslint-disable @typescript-eslint/no-misused-promises -- disabled */
 import { IUserController } from "./IUserController";
-import { LoggerController } from "../logger/LoggerController";
 
 import { BaseController } from "../base/BaseController";
 import { PSqlService } from "../../services/psql/PSqlService";
 import { MongoService } from "../../services/mongo/MongoService";
-import { ApiResponse } from "../../models/api/response/ApiResponse";
-import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
-import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
+import { Request, Response } from "express";
+import { getIdFromRequest } from "../../helpers/api/getIdFromRequest";
+import { UserService } from "../../services/user/UserService";
+import { LoggerService } from "../../services/logger/LoggerService";
+import { exceptionToExceptionLog } from "../../helpers/logger/exceptionToExceptionLog";
+import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -17,7 +20,7 @@ export class UserController extends BaseController implements IUserController {
     /**
      * Logger controller used for logging exceptions to the mongo database
      */
-    private readonly loggerController: LoggerController;
+    private readonly loggerService: LoggerService;
 
     /**
      * Service used for calling logger controller methods
@@ -25,28 +28,27 @@ export class UserController extends BaseController implements IUserController {
     private readonly mongoService: MongoService;
 
     /**
+     * Service used to handle all user operations in the database
+     */
+    private readonly userService: UserService;
+
+    /**
      * No-arg constructor, whose purpose is to initialize the psql instance
      */
-    public constructor(
-        _loggerController: LoggerController,
-        _mongoService: MongoService,
-    ) {
+    public constructor(_mongoService: MongoService) {
         super(process.env.USER_TABLE, "user");
-        this.loggerController = _loggerController;
+        this.loggerService = new LoggerService(_mongoService);
         this.mongoService = _mongoService;
         this.psqlClient = new PSqlService();
-        this.psqlClient
-            .init()
-            .then((_) => {
-                console.log("Successfully connected to the psql instance!");
-            })
-            .catch((error: unknown) => {
-                console.error(
-                    `Failed to connect to the Psql instance! ${
-                        (error as Error).message
-                    }`,
-                );
-            });
+        super.addRoutes(
+            [
+                {
+                    endpoint: "doesUsernameExist",
+                    handler: this.doesUsernameExist,
+                },
+            ],
+            BucklesRouteType.GET,
+        );
         super.setStatusFunction(() => {
             if (this.psqlClient.client.database === undefined) {
                 throw new Error("PSQL Client is not connected");
@@ -54,35 +56,32 @@ export class UserController extends BaseController implements IUserController {
             if (this.mongoService === undefined) {
                 throw new Error("Mongo Client is not connected");
             }
-            if (this.loggerController === undefined) {
+            if (this.loggerService === undefined) {
                 throw new Error("Logger Controller is not connected");
             }
         });
+        this.userService = new UserService(this.psqlClient, this.loggerService);
     }
 
     /** @inheritdoc */
     public doesUsernameExist = async (
-        id: string,
-        username: string,
-    ): Promise<ApiResponse<boolean>> => {
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
         try {
-            const foundUserQuery = await this.psqlClient.client.query(
-                `SELECT * FROM ${this.table} WHERE USERNAME = '${username}'`,
+            id = getIdFromRequest(request);
+            const username = request.query.username as string;
+            const usernameResponse = await this.userService.doesUsernameExist(
+                id,
+                username,
             );
-            return new ApiResponse<boolean>(id).setData(
-                foundUserQuery.rowCount > 0,
-            );
+            response.status((usernameResponse.data as boolean) ? 400 : 200);
+            response.send(usernameResponse);
         } catch (error: unknown) {
-            // await this.loggerController.LogException(
-            //     id,
-            //     this.mongoService,
-            //     exceptionToExceptionLog(error, id),
-            // );
-            return new ApiResponse<boolean>(id).setApiError(
-                new ApiErrorInfo(id).initException(
-                    error,
-                    ApiErrorCodes.USERNAME_LOOKUP_ERROR,
-                ),
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
             );
         }
     };

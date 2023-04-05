@@ -97,7 +97,10 @@ export class BaseController implements IBaseController {
 
     /** @inheritdoc */
     public addRoutes(_routes: BucklesRoute[], _type: BucklesRouteType) {
-        this.routes[this.routeTypeKeyMapping[_type]] = _routes;
+        this.routes[this.routeTypeKeyMapping[_type]] =
+            this.routes[this.routeTypeKeyMapping[_type]] === undefined
+                ? _routes
+                : [...this.routes[this.routeTypeKeyMapping[_type]], ..._routes];
         return this;
     }
 }

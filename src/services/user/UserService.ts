@@ -16,7 +16,7 @@ export class UserService implements IUserService {
     /**
      * The name of the PSQL table this service points to
      */
-    private readonly table: string = "USER";
+    private readonly table: string = "BUCKLESUSER";
 
     /**
      * The LoggerService instance used for logging exceptions to the mongo database

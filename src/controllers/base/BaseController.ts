@@ -78,7 +78,7 @@ export class BaseController implements IBaseController {
         try {
             this.statusFunction();
             response.status(200);
-            response.send({});
+            response.send({ status: "online" });
         } catch (error: unknown) {
             response.status(500);
             response.send({ status: (error as Error).message });

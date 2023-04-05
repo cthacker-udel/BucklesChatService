@@ -30,7 +30,7 @@ export class LoggerService implements ILoggerService {
         const result = await this.mongoService
             .collection(
                 this.mongoService.db(process.env.MONGO_DB_NAME ?? ""),
-                process.env.MONGO_COLLECTION_NAME ?? "",
+                process.env.MONGO_EXCEPTION_LOG_COLLECTION ?? "",
             )
             .insertOne(exceptionLog);
         return new ApiResponse<boolean>(id).setData(result.acknowledged);
@@ -44,7 +44,7 @@ export class LoggerService implements ILoggerService {
         const result = await this.mongoService
             .collection(
                 this.mongoService.db(process.env.MONGO_DB_NAME ?? ""),
-                process.env.MONGO_COLLECTION_NAME ?? "",
+                process.env.MONGO_EVENT_LOG_COLLECTION ?? "",
             )
             .insertOne(eventLog);
         return new ApiResponse<boolean>(id).setData(result.acknowledged);

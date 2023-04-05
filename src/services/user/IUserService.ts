@@ -1,3 +1,4 @@
+import { User } from "../../@types/user/User";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 
 /**
@@ -14,5 +15,17 @@ export interface IUserService {
     doesUsernameExist: (
         _id: string,
         _username: string,
+    ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Creates a user within the psql database
+     *
+     * @param _id - The id to track the transaction
+     * @param _user - The user instance we are adding
+     * @returns Whether the user was created successfully or not
+     */
+    createUser: (
+        _id: string,
+        _user: Partial<User>,
     ) => Promise<ApiResponse<boolean>>;
 }

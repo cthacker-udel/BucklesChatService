@@ -10,6 +10,9 @@ import { UserService } from "../../services/user/UserService";
 import { LoggerService } from "../../services/logger/LoggerService";
 import { exceptionToExceptionLog } from "../../helpers/logger/exceptionToExceptionLog";
 import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
+import { User } from "../../@types/user/User";
+import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -49,6 +52,10 @@ export class UserController extends BaseController implements IUserController {
             ],
             BucklesRouteType.GET,
         );
+        super.addRoutes(
+            [{ endpoint: "create", handler: this.createUser }],
+            BucklesRouteType.POST,
+        );
         super.setStatusFunction(() => {
             if (this.psqlClient.client.database === undefined) {
                 throw new Error("PSQL Client is not connected");
@@ -82,6 +89,35 @@ export class UserController extends BaseController implements IUserController {
             await this.loggerService.LogException(
                 id,
                 exceptionToExceptionLog(error, id),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public createUser = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const userPayload = request.body as Partial<User>;
+            const userCreationResponse = await this.userService.createUser(
+                id,
+                userPayload,
+            );
+            response.status((userCreationResponse.data as boolean) ? 200 : 500);
+            response.send(userCreationResponse);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
             );
         }
     };

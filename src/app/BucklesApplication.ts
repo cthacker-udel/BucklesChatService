@@ -4,7 +4,6 @@ import { IBucklesApplication } from "./IBucklesApplication";
 import { MongoService } from "../services/mongo/MongoService";
 import { LoggerController } from "../controllers/logger/LoggerController";
 import { UserController } from "../controllers/user/UserController";
-import { RedisService } from "../services/redis/RedisService";
 
 export class BucklesApplication implements IBucklesApplication {
     /**
@@ -22,7 +21,6 @@ export class BucklesApplication implements IBucklesApplication {
     /** @inheritdoc */
     public start(): void {
         const mongoService = new MongoService();
-        const redisService = new RedisService();
 
         const loggerController = new LoggerController(mongoService);
         const userController = new UserController(mongoService);

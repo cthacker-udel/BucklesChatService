@@ -5,6 +5,7 @@ import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
 import { LoggerService } from "../logger/LoggerService";
 import { exceptionToExceptionLog } from "../../helpers/logger/exceptionToExceptionLog";
+import { User } from "../../@types/user/User";
 
 export class UserService implements IUserService {
     /**
@@ -55,6 +56,36 @@ export class UserService implements IUserService {
                 new ApiErrorInfo(id).initException(
                     error,
                     ApiErrorCodes.USERNAME_LOOKUP_ERROR,
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public createUser = async (
+        id: string,
+        user: Partial<User>,
+    ): Promise<ApiResponse<boolean>> => {
+        try {
+            const createUserResponse = await this.psqlClient.client.query(
+                `INSERT INTO ${
+                    this.table
+                }(username, password, password_salt) VALUES (${
+                    (user.username, user.password, user.passwordSalt)
+                });`,
+            );
+            return new ApiResponse<boolean>(id).setData(
+                createUserResponse.rowCount > 0,
+            );
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            return new ApiResponse<boolean>(id).setApiError(
+                new ApiErrorInfo(id).initException(
+                    error,
+                    ApiErrorCodes.USERNAME_CREATION_FAILURE,
                 ),
             );
         }

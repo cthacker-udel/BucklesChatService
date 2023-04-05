@@ -15,4 +15,13 @@ export interface IUserController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * Creates a user within the database
+     *
+     * @param _request - The client request
+     * @param _response - The response to the client
+     * @returns Whether the user was created successfully or not
+     */
+    createUser: (_request: Request, _response: Response) => Promise<void>;
 }

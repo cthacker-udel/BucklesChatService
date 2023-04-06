@@ -4,6 +4,7 @@ import { IBucklesApplication } from "./IBucklesApplication";
 import { MongoService } from "../services/mongo/MongoService";
 import { LoggerController } from "../controllers/logger/LoggerController";
 import { UserController } from "../controllers/user/UserController";
+import morgan from "morgan";
 
 export class BucklesApplication implements IBucklesApplication {
     /**
@@ -25,6 +26,7 @@ export class BucklesApplication implements IBucklesApplication {
         const loggerController = new LoggerController(mongoService);
         const userController = new UserController(mongoService);
 
+        this.app.use(morgan("dev"));
         this.app.use(express.json());
         this.app.use(loggerController.generateRouter());
         this.app.use(userController.generateRouter());

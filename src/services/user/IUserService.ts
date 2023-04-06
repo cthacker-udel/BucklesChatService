@@ -99,4 +99,12 @@ export interface IUserService {
      * @returns - The total # of users that are online and using the service
      */
     usersOnline: (_id: string) => Promise<ApiResponse<number>>;
+
+    /**
+     * Returns the total # of users in the entire application
+     *
+     * @param _id - The id to track the transaction
+     * @returns - The total # of users in the entire application
+     */
+    totalUsers: (_id: string) => Promise<ApiResponse<number>>;
 }

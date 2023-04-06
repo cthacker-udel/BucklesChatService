@@ -212,4 +212,12 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public usersOnline = async (id: string): Promise<ApiResponse<number>> =>
         new ApiResponse(id, await this.redisService.client.dbSize());
+
+    /** @inheritdoc */
+    public totalUsers = async (id: string): Promise<ApiResponse<number>> => {
+        const queryResult = await this.psqlClient.client.query(
+            `SELECT * FROM ${this.table}`,
+        );
+        return new ApiResponse(id, queryResult.rowCount);
+    };
 }

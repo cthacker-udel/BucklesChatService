@@ -60,4 +60,13 @@ export interface IUserController {
      * @returns The total # of users that are online
      */
     usersOnline: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Counts the total # of users in the entire application
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns The total # of users using the application
+     */
+    totalUsers: (_request: Request, _response: Response) => Promise<void>;
 }

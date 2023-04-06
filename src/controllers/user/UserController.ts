@@ -63,6 +63,10 @@ export class UserController extends BaseController implements IUserController {
                     endpoint: "usersOnline",
                     handler: this.usersOnline,
                 },
+                {
+                    endpoint: "totalUsers",
+                    handler: this.totalUsers,
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -276,6 +280,31 @@ export class UserController extends BaseController implements IUserController {
             const totalUsersOnline = await this.userService.usersOnline(id);
             response.status(200);
             response.send(totalUsersOnline);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public totalUsers = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const totalUsers = await this.userService.totalUsers(id);
+            response.status(200);
+            response.send(totalUsers);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

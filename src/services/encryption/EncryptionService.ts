@@ -15,7 +15,7 @@ export class EncryptionService implements IEncryptionService {
 
     /** @inheritdoc */
     public generateSalt = (saltLength = 56): string =>
-        randomBytes(saltLength).toString("ascii");
+        randomBytes(saltLength).toString("hex");
 
     /** @inheritdoc */
     public hmacEncrypt = (value: string): EncryptionPayload => {

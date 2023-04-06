@@ -17,11 +17,20 @@ export interface IUserController {
     ) => Promise<void>;
 
     /**
-     * Creates a user within the database
+     * Signs a user up with the application
      *
      * @param _request - The client request
      * @param _response - The response to the client
      * @returns Whether the user was created successfully or not
      */
-    createUser: (_request: Request, _response: Response) => Promise<void>;
+    signUp: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Handles the login request
+     *
+     * @param _request - The client request
+     * @param _response - The response to the client
+     * @returns Whether the user successfully logged in or not
+     */
+    login: (_request: Request, _response: Response) => Promise<void>;
 }

@@ -1,5 +1,6 @@
 import { User } from "../../@types/user/User";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { EncryptionData } from "../psql/models/EncryptionData";
 
 /**
  * Handles all business logic regarding User entities in the database
@@ -21,10 +22,45 @@ export interface IUserService {
      * Creates a user within the psql database
      *
      * @param _id - The id to track the transaction
-     * @param _user - The user instance we are adding
+     * @param _username - The username we are adding to the database
+     * @param _password - The password we are adding to the database
+     * @param _passwordSalt - The password salt we are adding to the database
      * @returns Whether the user was created successfully or not
      */
     createUser: (
+        _id: string,
+        _username: string,
+        _password: string,
+        _passwordSalt: string,
+    ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Finds the user encryption data given the username
+     *
+     * @param _username - The username which is used to lookup the user from the database
+     * @returns The found encryption salt and password, and throws an exception if none is found
+     */
+    findUserEncryptionData: (
+        _username: string,
+    ) => Promise<Partial<EncryptionData>>;
+
+    /**
+     * Attempts to log the user in
+     *
+     * @param _id - The id to track the transaction
+     * @param _user - The user instance we are adding
+     * @returns Whether the user logged in successfully or not
+     */
+    login: (_id: string, _user: Partial<User>) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Attempts to sign the user up in the database
+     *
+     * @param _id - The id to track the transaction
+     * @param _user - The user instance we are signing up
+     * @returns Whether the user signed up successfully or not
+     */
+    signUp: (
         _id: string,
         _user: Partial<User>,
     ) => Promise<ApiResponse<boolean>>;

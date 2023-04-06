@@ -13,6 +13,7 @@ import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
 import { User } from "../../@types/user/User";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
+import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -53,7 +54,10 @@ export class UserController extends BaseController implements IUserController {
             BucklesRouteType.GET,
         );
         super.addRoutes(
-            [{ endpoint: "create", handler: this.createUser }],
+            [
+                { endpoint: "signup", handler: this.signUp },
+                { endpoint: "login", handler: this.login },
+            ],
             BucklesRouteType.POST,
         );
         super.setStatusFunction(() => {
@@ -90,11 +94,20 @@ export class UserController extends BaseController implements IUserController {
                 id,
                 exceptionToExceptionLog(error, id),
             );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(
+                        error,
+                        ApiErrorCodes.USERNAME_LOOKUP_ERROR,
+                    ),
+                ),
+            );
         }
     };
 
     /** @inheritdoc */
-    public createUser = async (
+    public signUp = async (
         request: Request,
         response: Response,
     ): Promise<void> => {
@@ -102,12 +115,41 @@ export class UserController extends BaseController implements IUserController {
         try {
             id = getIdFromRequest(request);
             const userPayload = request.body as Partial<User>;
-            const userCreationResponse = await this.userService.createUser(
+            const userCreationResponse = await this.userService.signUp(
                 id,
                 userPayload,
             );
             response.status((userCreationResponse.data as boolean) ? 200 : 500);
             response.send(userCreationResponse);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(
+                        error,
+                        ApiErrorCodes.USERNAME_CREATION_FAILURE,
+                    ),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public login = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const loginPayload = request.body as Partial<User>;
+            const loginResult = await this.userService.login(id, loginPayload);
+            response.status(loginResult.data ?? false ? 200 : 400);
+            response.send(loginResult);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

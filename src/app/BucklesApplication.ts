@@ -25,6 +25,7 @@ export class BucklesApplication implements IBucklesApplication {
         const loggerController = new LoggerController(mongoService);
         const userController = new UserController(mongoService);
 
+        this.app.use(express.json());
         this.app.use(loggerController.generateRouter());
         this.app.use(userController.generateRouter());
         this.app.listen(process.env.PORT, () => {

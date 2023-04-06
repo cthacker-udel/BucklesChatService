@@ -6,6 +6,9 @@ import { IEncryptionService } from "./IEncryptionService";
 import { v4 } from "uuid";
 import { createHmac, randomBytes } from "node:crypto";
 
+/**
+ * Service involving encryption, whether that be with passwords or generally any values that require encryption
+ */
 export class EncryptionService implements IEncryptionService {
     /** @inheritdoc */
     public generateId = (): string => v4.toString();

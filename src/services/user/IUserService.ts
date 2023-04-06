@@ -64,4 +64,16 @@ export interface IUserService {
         _id: string,
         _user: Partial<User>,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Attempts to remove a user from the database
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username we are using to find and delete the user
+     * @returns Whether the user was successfully deleted or not
+     */
+    removeUser: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

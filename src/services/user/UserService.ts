@@ -121,8 +121,6 @@ export class UserService implements IUserService {
             throw new Error("Must supply proper credentials when signing up");
         }
 
-        console.log("checking if username exists");
-
         const doesUsernameAlreadyExist = await this.doesUsernameExist(
             id,
             username,
@@ -141,8 +139,6 @@ export class UserService implements IUserService {
             throw new Error("An error occurred, please try again.");
         }
 
-        console.log("creating user", encryptionData.hash, encryptionData.salt);
-
         const createUserResult = await this.createUser(
             id,
             username,
@@ -150,8 +146,28 @@ export class UserService implements IUserService {
             encryptionData.salt,
         );
 
-        console.log("done creating user");
-
         return new ApiResponse(id, createUserResult.data ?? false);
+    };
+
+    /** @inheritdoc */
+    public removeUser = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const isUsernameInTable = await this.doesUsernameExist(id, username);
+
+        if (!(isUsernameInTable.data ?? true)) {
+            throw new Error("Username is not present in database");
+        }
+
+        const removalResult = await this.psqlClient.client.query(
+            `DELETE FROM ${this.table} WHERE USERNAME = '${username}';`,
+        );
+
+        if (removalResult.rowCount === 0) {
+            throw new Error("Unable to remove user");
+        }
+
+        return new ApiResponse(id, removalResult.rowCount > 0);
     };
 }

@@ -60,6 +60,11 @@ export class UserController extends BaseController implements IUserController {
             ],
             BucklesRouteType.POST,
         );
+        super.addRoutes(
+            [{ endpoint: "remove", handler: this.removeUser }],
+            BucklesRouteType.DELETE,
+        );
+
         super.setStatusFunction(() => {
             if (this.psqlClient.client.database === undefined) {
                 throw new Error("PSQL Client is not connected");
@@ -150,6 +155,39 @@ export class UserController extends BaseController implements IUserController {
             const loginResult = await this.userService.login(id, loginPayload);
             response.status(loginResult.data ?? false ? 200 : 400);
             response.send(loginResult);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public removeUser = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const { username } = request.body as Partial<User>;
+
+            if (username === undefined) {
+                throw new Error("Must supply username when removing user");
+            }
+            const deleteResponse = await this.userService.removeUser(
+                id,
+                username,
+            );
+            response.status(200);
+            response.send(deleteResponse);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

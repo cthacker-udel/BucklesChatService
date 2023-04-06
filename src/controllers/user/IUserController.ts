@@ -51,4 +51,13 @@ export interface IUserController {
      * @returns Whether the user was edited successfully or not
      */
     editUser: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Gathers the total # of users that are online
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns The total # of users that are online
+     */
+    usersOnline: (_request: Request, _response: Response) => Promise<void>;
 }

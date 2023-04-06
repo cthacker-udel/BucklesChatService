@@ -91,4 +91,12 @@ export interface IUserService {
         _username: string,
         _userPayload: Partial<PsqlUser>,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Returns the total # of users online
+     *
+     * @param _id - The id to track the transaction
+     * @returns - The total # of users that are online and using the service
+     */
+    usersOnline: (_id: string) => Promise<ApiResponse<number>>;
 }

@@ -9,6 +9,7 @@ import { EncryptionData } from "../psql/models/EncryptionData";
 import { EncryptionService } from "../encryption/EncryptionService";
 import { convertUserKeyToPsqlValue } from "../../helpers/api/convertUserKeyToPsqlValue";
 import { PsqlUser } from "../../@types/user/PsqlUser";
+import { RedisService } from "../redis/RedisService";
 
 export class UserService implements IUserService {
     /**
@@ -27,18 +28,25 @@ export class UserService implements IUserService {
     private readonly loggerService: LoggerService;
 
     /**
+     * The redis service instance used to access the database
+     */
+    private readonly redisService: RedisService;
+
+    /**
      * Three-arg constructor, takes in a sql client used for interacting with the database that stores user information,
      * and takes in an LoggerService instance used for logging exceptions to the mongo database.
      *
-     * @param _psqlClient
-     * @param _loggerService
+     * @param _psqlClient - The psql client which is used to access user information
+     * @param _loggerService - The logger service which is used to add logs to the mongo database
      */
     public constructor(
         _psqlClient: PSqlService,
         _loggerService: LoggerService,
+        _redisService: RedisService,
     ) {
         this.psqlClient = _psqlClient;
         this.loggerService = _loggerService;
+        this.redisService = _redisService;
     }
 
     /** @inheritdoc */
@@ -200,4 +208,8 @@ export class UserService implements IUserService {
         const updateResult = await this.psqlClient.client.query(request);
         return new ApiResponse(id, updateResult.rowCount > 0);
     };
+
+    /** @inheritdoc */
+    public usersOnline = async (id: string): Promise<ApiResponse<number>> =>
+        new ApiResponse(id, await this.redisService.client.dbSize());
 }

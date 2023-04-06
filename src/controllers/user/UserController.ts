@@ -15,6 +15,7 @@ import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
 import { convertPartialUserToPsqlUser } from "../../helpers/api/convertPartialUserToPsqlUser";
+import { RedisService } from "../../services/redis/RedisService";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -33,6 +34,11 @@ export class UserController extends BaseController implements IUserController {
     private readonly mongoService: MongoService;
 
     /**
+     * Service used for accessing the redis database
+     */
+    private readonly redisService: RedisService;
+
+    /**
      * Service used to handle all user operations in the database
      */
     private readonly userService: UserService;
@@ -45,11 +51,17 @@ export class UserController extends BaseController implements IUserController {
         this.loggerService = new LoggerService(_mongoService);
         this.mongoService = _mongoService;
         this.psqlClient = new PSqlService();
+        this.redisService = new RedisService();
+
         super.addRoutes(
             [
                 {
                     endpoint: "doesUsernameExist",
                     handler: this.doesUsernameExist,
+                },
+                {
+                    endpoint: "usersOnline",
+                    handler: this.usersOnline,
                 },
             ],
             BucklesRouteType.GET,
@@ -81,7 +93,11 @@ export class UserController extends BaseController implements IUserController {
                 throw new Error("Logger Controller is not connected");
             }
         });
-        this.userService = new UserService(this.psqlClient, this.loggerService);
+        this.userService = new UserService(
+            this.psqlClient,
+            this.loggerService,
+            this.redisService,
+        );
     }
 
     /** @inheritdoc */
@@ -235,6 +251,31 @@ export class UserController extends BaseController implements IUserController {
 
             response.status(200);
             response.send(editResponse);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public usersOnline = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const totalUsersOnline = await this.userService.usersOnline(id);
+            response.status(200);
+            response.send(totalUsersOnline);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

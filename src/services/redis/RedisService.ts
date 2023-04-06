@@ -3,13 +3,13 @@ import { IRedisService } from "./IRedisService";
 import { RedisClientType } from "@redis/client";
 
 export class RedisService implements IRedisService {
-    private readonly redisClient: RedisClientType;
+    public readonly client: RedisClientType;
 
     /**
      * No-arg constructor that uses environment variables to connect to the redis database
      */
     public constructor() {
-        this.redisClient = createClient({
+        this.client = createClient({
             password: process.env.REDIS_PASSWORD,
             socket: {
                 host: process.env.REDIS_ENDPOINT,
@@ -32,6 +32,6 @@ export class RedisService implements IRedisService {
 
     /** @inheritdoc */
     public async init() {
-        await this.redisClient.connect();
+        await this.client.connect();
     }
 }

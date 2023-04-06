@@ -1,10 +1,10 @@
-export type User = {
-    firstName?: string;
-    lastName?: string;
+export type PsqlUser = {
+    first_name?: string;
+    last_name?: string;
     email?: string;
     handle?: string;
     dob?: number;
     username?: string;
     password?: string;
-    passwordSalt?: string;
+    password_salt?: string;
 };

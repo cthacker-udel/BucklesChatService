@@ -1,3 +1,5 @@
+/* eslint-disable implicit-arrow-linebreak -- disabled */
+
 import { IUserService } from "./IUserService";
 import { PSqlService } from "../psql/PSqlService";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
@@ -5,6 +7,8 @@ import { LoggerService } from "../logger/LoggerService";
 import { User } from "../../@types/user/User";
 import { EncryptionData } from "../psql/models/EncryptionData";
 import { EncryptionService } from "../encryption/EncryptionService";
+import { convertUserKeyToPsqlValue } from "../../helpers/api/convertUserKeyToPsqlValue";
+import { PsqlUser } from "../../@types/user/PsqlUser";
 
 export class UserService implements IUserService {
     /**
@@ -169,5 +173,31 @@ export class UserService implements IUserService {
         }
 
         return new ApiResponse(id, removalResult.rowCount > 0);
+    };
+
+    /** @inheritdoc */
+    public editUser = async (
+        id: string,
+        username: string,
+        userPayload: Partial<PsqlUser>,
+    ): Promise<ApiResponse<boolean>> => {
+        const isUsernameInTable = await this.doesUsernameExist(id, username);
+
+        if (!(isUsernameInTable.data ?? false)) {
+            throw new Error("Username does not exist in table");
+        }
+
+        const request = `UPDATE ${this.table} SET ${Object.keys(userPayload)
+            .map(
+                (eachKey) =>
+                    `${eachKey.toLowerCase()} = ${convertUserKeyToPsqlValue(
+                        eachKey,
+                        (userPayload as { [key: string]: string })[eachKey],
+                    )}`,
+            )
+            .join(", ")} WHERE USERNAME = '${username}';`;
+
+        const updateResult = await this.psqlClient.client.query(request);
+        return new ApiResponse(id, updateResult.rowCount > 0);
     };
 }

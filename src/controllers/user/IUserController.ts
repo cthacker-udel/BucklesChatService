@@ -42,4 +42,13 @@ export interface IUserController {
      * @returns Whether the user was successfully removed or not
      */
     removeUser: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Edits a user from the database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns Whether the user was edited successfully or not
+     */
+    editUser: (_request: Request, _response: Response) => Promise<void>;
 }

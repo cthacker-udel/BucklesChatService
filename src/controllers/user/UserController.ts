@@ -14,6 +14,7 @@ import { User } from "../../@types/user/User";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
+import { convertPartialUserToPsqlUser } from "../../helpers/api/convertPartialUserToPsqlUser";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -63,6 +64,10 @@ export class UserController extends BaseController implements IUserController {
         super.addRoutes(
             [{ endpoint: "remove", handler: this.removeUser }],
             BucklesRouteType.DELETE,
+        );
+        super.addRoutes(
+            [{ endpoint: "edit", handler: this.editUser }],
+            BucklesRouteType.PUT,
         );
 
         super.setStatusFunction(() => {
@@ -188,6 +193,48 @@ export class UserController extends BaseController implements IUserController {
             );
             response.status(200);
             response.send(deleteResponse);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public editUser = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const username = request.query.username as string;
+            const {
+                username: _,
+                password: __,
+                passwordSalt: ___,
+                ...rest
+            } = request.body as Partial<User>;
+
+            if (Object.keys(rest).length === 0) {
+                throw new Error("Must supply values to modify the entity");
+            }
+
+            const editResponse = await this.userService.editUser(
+                id,
+                username,
+                convertPartialUserToPsqlUser(rest),
+            );
+
+            response.status(200);
+            response.send(editResponse);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

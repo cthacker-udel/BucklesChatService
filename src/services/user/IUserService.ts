@@ -1,3 +1,4 @@
+import { PsqlUser } from "../../@types/user/PsqlUser";
 import { User } from "../../@types/user/User";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { EncryptionData } from "../psql/models/EncryptionData";
@@ -75,5 +76,19 @@ export interface IUserService {
     removeUser: (
         _id: string,
         _username: string,
+    ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Edits a user within the database with the matching provided username
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The user upon which we are doing the edits on
+     * @param _userPayload - The partial fields we are updating
+     * @returns - Whether the user was updated or not
+     */
+    editUser: (
+        _id: string,
+        _username: string,
+        _userPayload: Partial<PsqlUser>,
     ) => Promise<ApiResponse<boolean>>;
 }

@@ -11,6 +11,7 @@ import { convertUserKeyToPsqlValue } from "../../helpers/api/convertUserKeyToPsq
 import { PsqlUser } from "../../@types/user/PsqlUser";
 import { RedisService } from "../redis/RedisService";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
+import { convertPartialPsqlUserToUser } from "../../helpers/api/convertPartialPsqlUserToUser";
 
 export class UserService implements IUserService {
     /**
@@ -260,6 +261,11 @@ export class UserService implements IUserService {
             return new ApiResponse(id, {});
         }
 
-        return new ApiResponse(id, queryResult.rows[0] as Partial<User>);
+        return new ApiResponse(
+            id,
+            convertPartialPsqlUserToUser(
+                queryResult.rows[0] as Partial<PsqlUser>,
+            ),
+        );
     };
 }

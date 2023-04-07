@@ -72,8 +72,8 @@ export class UserController extends BaseController implements IUserController {
                     handler: this.dashboardInformation,
                 },
                 {
-                    endpoint: "editInformation",
-                    handler: this.editInformation,
+                    endpoint: "details",
+                    handler: this.details,
                 },
             ],
             BucklesRouteType.GET,
@@ -355,7 +355,7 @@ export class UserController extends BaseController implements IUserController {
     };
 
     /** @inheritdoc */
-    public editInformation = async (
+    public details = async (
         request: Request,
         response: Response,
     ): Promise<void> => {
@@ -363,7 +363,7 @@ export class UserController extends BaseController implements IUserController {
         try {
             id = getIdFromRequest(request);
             const username = request.query.username as string;
-            const userEditInformation = await this.userService.editInformation(
+            const userEditInformation = await this.userService.details(
                 id,
                 username,
             );

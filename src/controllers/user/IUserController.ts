@@ -89,5 +89,5 @@ export interface IUserController {
      * @param _response - The client response
      * @returns The information necessary when populating the edit forms
      */
-    editInformation: (_request: Request, _response: Response) => Promise<void>;
+    details: (_request: Request, _response: Response) => Promise<void>;
 }

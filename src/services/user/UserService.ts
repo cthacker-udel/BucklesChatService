@@ -248,7 +248,7 @@ export class UserService implements IUserService {
     };
 
     /** @inheritdoc */
-    public editInformation = async (
+    public details = async (
         id: string,
         username: string,
     ): Promise<ApiResponse<Partial<User>>> => {

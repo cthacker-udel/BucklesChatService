@@ -128,7 +128,7 @@ export interface IUserService {
      * @param _username - The username which is used to access the information
      * @returns - The user information relevant for editing
      */
-    editInformation: (
+    details: (
         _id: string,
         _username: string,
     ) => Promise<ApiResponse<Partial<User>>>;

@@ -229,11 +229,12 @@ export class UserService implements IUserService {
         id: string,
         username: string,
     ): Promise<ApiResponse<DashboardInformation>> => {
-        const query = `SELECT handle, profile_image_url FROM ${this.table} WHERE USERNAME = '${username}'`;
+        const query = `SELECT handle, profile_image_url, creation_date FROM ${this.table} WHERE USERNAME = '${username}'`;
         const queryResult = await this.psqlClient.client.query(query);
 
         if (queryResult.rowCount === 0) {
             return new ApiResponse(id, {
+                creationDate: 0,
                 handle: undefined,
                 profileImageUrl: undefined,
                 username,

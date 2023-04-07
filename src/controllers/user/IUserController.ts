@@ -81,4 +81,13 @@ export interface IUserController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * Fetches the user edit information for the user when displaying the edit modal
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns The information necessary when populating the edit forms
+     */
+    editInformation: (_request: Request, _response: Response) => Promise<void>;
 }

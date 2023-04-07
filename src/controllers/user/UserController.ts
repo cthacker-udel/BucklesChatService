@@ -71,6 +71,10 @@ export class UserController extends BaseController implements IUserController {
                     endpoint: "dashboardInformation",
                     handler: this.dashboardInformation,
                 },
+                {
+                    endpoint: "editInformation",
+                    handler: this.editInformation,
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -336,6 +340,35 @@ export class UserController extends BaseController implements IUserController {
                 await this.userService.dashboardInformation(id, username);
             response.status(200);
             response.send(userDashboardInformation);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public editInformation = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const username = request.query.username as string;
+            const userEditInformation = await this.userService.editInformation(
+                id,
+                username,
+            );
+            response.status(200);
+            response.send(userEditInformation);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

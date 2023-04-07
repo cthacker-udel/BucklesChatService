@@ -246,4 +246,20 @@ export class UserService implements IUserService {
             username,
         } as DashboardInformation);
     };
+
+    /** @inheritdoc */
+    public editInformation = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<Partial<User>>> => {
+        const query = `SELECT first_name, last_name, email, handle, dob FROM ${this.table} WHERE USERNAME = '${username}'`;
+
+        const queryResult = await this.psqlClient.client.query(query);
+
+        if (queryResult.rowCount === 0) {
+            return new ApiResponse(id, {});
+        }
+
+        return new ApiResponse(id, queryResult.rows[0] as Partial<User>);
+    };
 }

@@ -113,10 +113,23 @@ export interface IUserService {
      * Fetches the dashboard information for the user sending the request
      *
      * @param _id - The id to track the transaction
+     * @param _username - The username which allows for gathering of the information
      * @returns - The dashboard information relevant to the user
      */
     dashboardInformation: (
         _id: string,
         _username: string,
     ) => Promise<ApiResponse<DashboardInformation>>;
+
+    /**
+     * Fetches the user information relevant for editing from the database
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username which is used to access the information
+     * @returns - The user information relevant for editing
+     */
+    editInformation: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<Partial<User>>>;
 }

@@ -10,6 +10,7 @@ import { EncryptionService } from "../encryption/EncryptionService";
 import { convertUserKeyToPsqlValue } from "../../helpers/api/convertUserKeyToPsqlValue";
 import { PsqlUser } from "../../@types/user/PsqlUser";
 import { RedisService } from "../redis/RedisService";
+import { DashboardInformation } from "../../@types/user/DashboardInformation";
 
 export class UserService implements IUserService {
     /**
@@ -219,5 +220,27 @@ export class UserService implements IUserService {
             `SELECT * FROM ${this.table}`,
         );
         return new ApiResponse(id, queryResult.rowCount);
+    };
+
+    /** @inheritdoc */
+    public dashboardInformation = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<DashboardInformation>> => {
+        const query = `SELECT handle, profile_image_url FROM ${this.table} WHERE USERNAME = '${username}'`;
+        const queryResult = await this.psqlClient.client.query(query);
+
+        if (queryResult.rowCount === 0) {
+            return new ApiResponse(id, {
+                handle: undefined,
+                profileImageUrl: undefined,
+                username,
+            } as DashboardInformation);
+        }
+
+        return new ApiResponse(id, {
+            ...queryResult.rows[0],
+            username,
+        } as DashboardInformation);
     };
 }

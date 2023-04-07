@@ -69,4 +69,16 @@ export interface IUserController {
      * @returns The total # of users using the application
      */
     totalUsers: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Fetches the dashboard information for the user to display in their "User Info" section of the dashboard
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns The dashboard information relevant to the user
+     */
+    dashboardInformation: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
 }

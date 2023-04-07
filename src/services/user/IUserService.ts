@@ -1,3 +1,4 @@
+import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { PsqlUser } from "../../@types/user/PsqlUser";
 import { User } from "../../@types/user/User";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
@@ -107,4 +108,15 @@ export interface IUserService {
      * @returns - The total # of users in the entire application
      */
     totalUsers: (_id: string) => Promise<ApiResponse<number>>;
+
+    /**
+     * Fetches the dashboard information for the user sending the request
+     *
+     * @param _id - The id to track the transaction
+     * @returns - The dashboard information relevant to the user
+     */
+    dashboardInformation: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<DashboardInformation>>;
 }

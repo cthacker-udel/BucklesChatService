@@ -253,7 +253,7 @@ export class UserService implements IUserService {
         id: string,
         username: string,
     ): Promise<ApiResponse<Partial<User>>> => {
-        const query = `SELECT first_name, last_name, email, handle, dob FROM ${this.table} WHERE USERNAME = '${username}'`;
+        const query = `SELECT first_name, last_name, email, handle, dob, username FROM ${this.table} WHERE USERNAME = '${username}'`;
 
         const queryResult = await this.psqlClient.client.query(query);
 

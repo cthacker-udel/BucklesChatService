@@ -337,7 +337,6 @@ export class UserController extends BaseController implements IUserController {
             response.status(200);
             response.send(userDashboardInformation);
         } catch (error: unknown) {
-            console.log(error);
             await this.loggerService.LogException(
                 id,
                 exceptionToExceptionLog(error, id),

@@ -44,5 +44,14 @@ export const convertPartialUserToPsqlUser = (
         partialPsqlUser.password_salt = partialUser.passwordSalt;
     }
 
+    if (partialUser.profileImageUrl !== undefined) {
+        partialPsqlUser.profile_image_url = partialUser.profileImageUrl;
+    }
+
+    if (partialUser.profileImageRemovalUrl !== undefined) {
+        partialPsqlUser.profile_image_removal_url =
+            partialUser.profileImageRemovalUrl;
+    }
+
     return partialPsqlUser;
 };

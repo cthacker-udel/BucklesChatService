@@ -1,7 +1,14 @@
 /* eslint-disable implicit-arrow-linebreak -- disabled */
 /* eslint-disable no-confusing-arrow -- disabled */
 
-const stringColumns = ["first_name", "last_name", "email", "handle"];
+const stringColumns = [
+    "first_name",
+    "last_name",
+    "email",
+    "handle",
+    "profile_image_url",
+    "profile_image_removal_url",
+];
 
 /**
  * Converts the value associated with the key, to a string representing it's value in PSQL syntax

@@ -7,4 +7,7 @@ export type PsqlUser = {
     username?: string;
     password?: string;
     password_salt?: string;
+    profile_image_url?: string;
+    profile_image_removal_url?: string;
+    creation_date?: number;
 };

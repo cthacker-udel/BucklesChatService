@@ -68,7 +68,9 @@ export class UserService implements IUserService {
         passwordSalt: string,
     ): Promise<ApiResponse<boolean>> => {
         const createUserResponse = await this.psqlClient.client.query(
-            `INSERT INTO ${this.table}(username, password, password_salt) VALUES ('${username}', '${password}', '${passwordSalt}');`,
+            `INSERT INTO ${
+                this.table
+            }(username, password, password_salt, creation_date) VALUES ('${username}', '${password}', '${passwordSalt}', ${Date.now()});`,
         );
         return new ApiResponse<boolean>(id).setData(
             createUserResponse.rowCount > 0,

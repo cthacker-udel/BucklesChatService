@@ -7,4 +7,7 @@ export type User = {
     username?: string;
     password?: string;
     passwordSalt?: string;
+    profileImageUrl?: string;
+    profileImageRemovalUrl?: string;
+    creationDate?: number;
 };

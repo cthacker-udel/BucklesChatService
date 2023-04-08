@@ -367,7 +367,6 @@ export class UserController extends BaseController implements IUserController {
                 id,
                 username,
             );
-            console.log(userEditInformation);
             response.status(200);
             response.send(userEditInformation);
         } catch (error: unknown) {

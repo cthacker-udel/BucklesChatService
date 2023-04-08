@@ -1,3 +1,4 @@
+/* eslint-disable no-extra-boolean-cast -- disabled */
 import { PsqlUser } from "../../@types/user/PsqlUser";
 import { User } from "../../@types/user/User";
 
@@ -12,45 +13,49 @@ export const convertPartialUserToPsqlUser = (
 ): Partial<PsqlUser> => {
     const partialPsqlUser: Partial<PsqlUser> = {};
 
-    if (partialUser.firstName !== undefined) {
+    if (Boolean(partialUser.firstName)) {
         partialPsqlUser.first_name = partialUser.firstName;
     }
 
-    if (partialUser.lastName !== undefined) {
+    if (Boolean(partialUser.lastName)) {
         partialPsqlUser.last_name = partialUser.lastName;
     }
 
-    if (partialUser.email !== undefined) {
+    if (Boolean(partialUser.email)) {
         partialPsqlUser.email = partialUser.email;
     }
 
-    if (partialUser.handle !== undefined) {
+    if (Boolean(partialUser.handle)) {
         partialPsqlUser.handle = partialUser.handle;
     }
 
-    if (partialUser.dob !== undefined) {
+    if (Boolean(partialUser.dob)) {
         partialPsqlUser.dob = partialUser.dob;
     }
 
-    if (partialUser.username !== undefined) {
+    if (Boolean(partialUser.username)) {
         partialPsqlUser.username = partialUser.username;
     }
 
-    if (partialUser.password !== undefined) {
+    if (Boolean(partialUser.password)) {
         partialPsqlUser.password = partialUser.password;
     }
 
-    if (partialUser.passwordSalt !== undefined) {
+    if (Boolean(partialUser.passwordSalt)) {
         partialPsqlUser.password_salt = partialUser.passwordSalt;
     }
 
-    if (partialUser.profileImageUrl !== undefined) {
+    if (Boolean(partialUser.profileImageUrl)) {
         partialPsqlUser.profile_image_url = partialUser.profileImageUrl;
     }
 
-    if (partialUser.profileImageRemovalUrl !== undefined) {
+    if (Boolean(partialUser.profileImageRemovalUrl)) {
         partialPsqlUser.profile_image_removal_url =
             partialUser.profileImageRemovalUrl;
+    }
+
+    if (Boolean(partialUser.creationDate)) {
+        partialPsqlUser.creation_date = partialUser.creationDate;
     }
 
     return partialPsqlUser;

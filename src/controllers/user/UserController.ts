@@ -46,12 +46,16 @@ export class UserController extends BaseController implements IUserController {
     /**
      * No-arg constructor, whose purpose is to initialize the psql instance
      */
-    public constructor(_mongoService: MongoService) {
+    public constructor(
+        _mongoService: MongoService,
+        _psqlService: PSqlService,
+        _redisService: RedisService,
+    ) {
         super(process.env.USER_TABLE, "user");
         this.loggerService = new LoggerService(_mongoService);
         this.mongoService = _mongoService;
-        this.psqlClient = new PSqlService();
-        this.redisService = new RedisService();
+        this.psqlClient = _psqlService;
+        this.redisService = _redisService;
 
         super.addRoutes(
             [

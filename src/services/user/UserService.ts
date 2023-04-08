@@ -25,6 +25,11 @@ export class UserService implements IUserService {
     private readonly table: string = "BUCKLESUSER";
 
     /**
+     * The name of the PSQL table containing friend requests
+     */
+    private readonly friendRequestTable: string = "BUCKLESFRIENDREQUEST";
+
+    /**
      * The LoggerService instance used for logging exceptions to the mongo database
      */
     private readonly loggerService: LoggerService;

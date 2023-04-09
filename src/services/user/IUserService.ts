@@ -1,8 +1,5 @@
-import { DashboardInformation } from "../../@types/user/DashboardInformation";
-import { PsqlUser } from "../../@types/user/PsqlUser";
-import { User } from "../../@types/user/User";
+import { DbUser } from "../../@types/user/DbUser";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
-import { EncryptionData } from "../psql/models/EncryptionData";
 
 /**
  * Handles all business logic regarding User entities in the database
@@ -42,9 +39,7 @@ export interface IUserService {
      * @param _username - The username which is used to lookup the user from the database
      * @returns The found encryption salt and password, and throws an exception if none is found
      */
-    findUserEncryptionData: (
-        _username: string,
-    ) => Promise<Partial<EncryptionData>>;
+    findUserEncryptionData: (_username: string) => Promise<DbUser>;
 
     /**
      * Attempts to log the user in
@@ -53,7 +48,10 @@ export interface IUserService {
      * @param _user - The user instance we are adding
      * @returns Whether the user logged in successfully or not
      */
-    login: (_id: string, _user: Partial<User>) => Promise<ApiResponse<boolean>>;
+    login: (
+        _id: string,
+        _user: Partial<DbUser>,
+    ) => Promise<ApiResponse<boolean>>;
 
     /**
      * Attempts to sign the user up in the database
@@ -64,7 +62,7 @@ export interface IUserService {
      */
     signUp: (
         _id: string,
-        _user: Partial<User>,
+        _user: Partial<DbUser>,
     ) => Promise<ApiResponse<boolean>>;
 
     /**
@@ -90,7 +88,7 @@ export interface IUserService {
     editUser: (
         _id: string,
         _username: string,
-        _userPayload: Partial<PsqlUser>,
+        _userPayload: DbUser,
     ) => Promise<ApiResponse<boolean>>;
 
     /**
@@ -119,7 +117,7 @@ export interface IUserService {
     dashboardInformation: (
         _id: string,
         _username: string,
-    ) => Promise<ApiResponse<DashboardInformation>>;
+    ) => Promise<ApiResponse<DbUser>>;
 
     /**
      * Fetches the user information relevant for editing from the database
@@ -128,8 +126,5 @@ export interface IUserService {
      * @param _username - The username which is used to access the information
      * @returns - The user information relevant for editing
      */
-    details: (
-        _id: string,
-        _username: string,
-    ) => Promise<ApiResponse<Partial<User>>>;
+    details: (_id: string, _username: string) => Promise<ApiResponse<DbUser>>;
 }

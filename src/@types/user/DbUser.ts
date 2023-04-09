@@ -1,4 +1,4 @@
-export type User = {
+export type DbUser = {
     firstName?: string;
     lastName?: string;
     email?: string;

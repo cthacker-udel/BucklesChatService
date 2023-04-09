@@ -1,6 +1,6 @@
 /* eslint-disable no-extra-boolean-cast -- disabled */
 import { PsqlUser } from "../../@types/user/PsqlUser";
-import { User } from "../../@types/user/User";
+import { DbUser } from "../../@types/user/DbUser";
 
 /**
  * Converts a partial psql user to a partial user
@@ -10,8 +10,8 @@ import { User } from "../../@types/user/User";
  */
 export const convertPartialPsqlUserToUser = (
     partialPsqlUser: Partial<PsqlUser>,
-): Partial<User> => {
-    const partialUser: Partial<User> = {};
+): Partial<DbUser> => {
+    const partialUser: Partial<DbUser> = {};
 
     if (Boolean(partialPsqlUser.first_name)) {
         partialUser.firstName = partialPsqlUser.first_name;

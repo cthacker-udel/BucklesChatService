@@ -10,7 +10,7 @@ import { UserService } from "../../services/user/UserService";
 import { LoggerService } from "../../services/logger/LoggerService";
 import { exceptionToExceptionLog } from "../../helpers/logger/exceptionToExceptionLog";
 import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
-import { User } from "../../@types/user/User";
+import { DbUser } from "../../@types/user/DbUser";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
@@ -99,7 +99,7 @@ export class UserController extends BaseController implements IUserController {
         );
 
         super.setStatusFunction(() => {
-            if (this.psqlClient.client.database === undefined) {
+            if (!this.psqlClient.connected) {
                 throw new Error("PSQL Client is not connected");
             }
             if (this.mongoService === undefined) {
@@ -156,7 +156,7 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userPayload = request.body as Partial<User>;
+            const userPayload = request.body as Partial<DbUser>;
             const userCreationResponse = await this.userService.signUp(
                 id,
                 userPayload,
@@ -188,7 +188,7 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const loginPayload = request.body as Partial<User>;
+            const loginPayload = request.body as Partial<DbUser>;
             const loginResult = await this.userService.login(id, loginPayload);
             response.status(loginResult.data ?? false ? 200 : 400);
             response.send(loginResult);
@@ -214,7 +214,7 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const { username } = request.body as Partial<User>;
+            const { username } = request.body as Partial<DbUser>;
 
             if (username === undefined) {
                 throw new Error("Must supply username when removing user");
@@ -253,7 +253,7 @@ export class UserController extends BaseController implements IUserController {
                 password: __,
                 passwordSalt: ___,
                 ...rest
-            } = request.body as Partial<User>;
+            } = request.body as Partial<DbUser>;
 
             if (Object.keys(rest).length === 0) {
                 throw new Error("Must supply values to modify the entity");

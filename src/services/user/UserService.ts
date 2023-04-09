@@ -4,15 +4,9 @@ import { IUserService } from "./IUserService";
 import { PSqlService } from "../psql/PSqlService";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { LoggerService } from "../logger/LoggerService";
-import { User } from "../../@types/user/User";
-import { EncryptionData } from "../psql/models/EncryptionData";
+import { DbUser } from "../../@types/user/DbUser";
 import { EncryptionService } from "../encryption/EncryptionService";
-import { convertUserKeyToPsqlValue } from "../../helpers/api/convertUserKeyToPsqlValue";
-import { PsqlUser } from "../../@types/user/PsqlUser";
 import { RedisService } from "../redis/RedisService";
-import { DashboardInformation } from "../../@types/user/DashboardInformation";
-import { convertPartialPsqlUserToUser } from "../../helpers/api/convertPartialPsqlUserToUser";
-import { SqlizeUser } from "../../models/sequelize/SqlizeUser";
 
 export class UserService implements IUserService {
     /**
@@ -59,10 +53,9 @@ export class UserService implements IUserService {
 
     /** @inheritdoc */
     public doesUsernameExist = async (id: string, username: string) => {
-        const doesUserExist =
-            await this.psqlClient.userModel?.findOne<SqlizeUser>({
-                where: { username },
-            });
+        const doesUserExist = await this.psqlClient.userRepo?.findOne({
+            where: { username },
+        });
         return new ApiResponse<boolean>(id).setData(Boolean(doesUserExist));
     };
 
@@ -73,7 +66,7 @@ export class UserService implements IUserService {
         password: string,
         passwordSalt: string,
     ): Promise<ApiResponse<boolean>> => {
-        const createdUser = await this.psqlClient.userModel?.create({
+        const createdUser = await this.psqlClient.userRepo?.create({
             password,
             passwordSalt,
             username,
@@ -85,22 +78,26 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public findUserEncryptionData = async (
         username: string,
-    ): Promise<Partial<EncryptionData>> => {
-        const foundUserEncryptionData = await this.psqlClient.client.query(
-            `SELECT password_salt, password FROM ${this.table} WHERE username = '${username}';`,
-        );
+    ): Promise<DbUser> => {
+        const foundUserEncryptionData2 =
+            await this.psqlClient.userRepo?.findOne({
+                attributes: ["password_salt", "password"],
+                where: { username },
+            });
 
-        if (foundUserEncryptionData.rowCount === 0) {
+        console.log(foundUserEncryptionData2);
+
+        if (!foundUserEncryptionData2) {
             throw new Error("Invalid username supplied");
         }
 
-        return foundUserEncryptionData.rows[0] as EncryptionData;
+        return foundUserEncryptionData2.dataValues as DbUser;
     };
 
     /** @inheritdoc */
     public login = async (
         id: string,
-        user: Partial<User>,
+        user: Partial<DbUser>,
     ): Promise<ApiResponse<boolean>> => {
         const { username, password } = user;
         if (username === undefined || password === undefined) {
@@ -112,7 +109,7 @@ export class UserService implements IUserService {
         );
 
         if (
-            foundEncryptedPasswordSalt.password_salt === undefined ||
+            foundEncryptedPasswordSalt.passwordSalt === undefined ||
             foundEncryptedPasswordSalt.password === undefined
         ) {
             throw new Error("No encryption data available for user");
@@ -120,7 +117,7 @@ export class UserService implements IUserService {
 
         const fixedEncryptionResult =
             new EncryptionService().fixedValueEncryption(
-                foundEncryptedPasswordSalt.password_salt,
+                foundEncryptedPasswordSalt.passwordSalt,
                 password,
             );
 
@@ -133,7 +130,7 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public signUp = async (
         id: string,
-        user: Partial<User>,
+        user: Partial<DbUser>,
     ): Promise<ApiResponse<boolean>> => {
         const { username, password } = user;
 
@@ -180,22 +177,22 @@ export class UserService implements IUserService {
             throw new Error("Username is not present in database");
         }
 
-        const removalResult = await this.psqlClient.client.query(
-            `DELETE FROM ${this.table} WHERE USERNAME = '${username}';`,
-        );
+        const removalResult = await this.psqlClient.userRepo?.destroy({
+            where: { username },
+        });
 
-        if (removalResult.rowCount === 0) {
+        if (removalResult === 0 || removalResult === undefined) {
             throw new Error("Unable to remove user");
         }
 
-        return new ApiResponse(id, removalResult.rowCount > 0);
+        return new ApiResponse(id, removalResult > 0);
     };
 
     /** @inheritdoc */
     public editUser = async (
         id: string,
         username: string,
-        userPayload: Partial<PsqlUser>,
+        userPayload: DbUser,
     ): Promise<ApiResponse<boolean>> => {
         const isUsernameInTable = await this.doesUsernameExist(id, username);
 
@@ -203,18 +200,17 @@ export class UserService implements IUserService {
             throw new Error("Username does not exist in table");
         }
 
-        const request = `UPDATE ${this.table} SET ${Object.keys(userPayload)
-            .map(
-                (eachKey) =>
-                    `${eachKey.toLowerCase()} = ${convertUserKeyToPsqlValue(
-                        eachKey,
-                        (userPayload as { [key: string]: string })[eachKey],
-                    )}`,
-            )
-            .join(", ")} WHERE USERNAME = '${username}';`;
+        const request = await this.psqlClient.userRepo?.update(userPayload, {
+            where: { username },
+        });
 
-        const updateResult = await this.psqlClient.client.query(request);
-        return new ApiResponse(id, updateResult.rowCount > 0);
+        if (request === undefined) {
+            return new ApiResponse(id, false);
+        }
+
+        const numberAffected = request[0];
+
+        return new ApiResponse(id, numberAffected > 0);
     };
 
     /** @inheritdoc */
@@ -223,7 +219,7 @@ export class UserService implements IUserService {
 
     /** @inheritdoc */
     public totalUsers = async (id: string): Promise<ApiResponse<number>> => {
-        const total = await this.psqlClient.userModel?.count();
+        const total = await this.psqlClient.userRepo?.count();
         return new ApiResponse(id, total);
     };
 
@@ -231,43 +227,40 @@ export class UserService implements IUserService {
     public dashboardInformation = async (
         id: string,
         username: string,
-    ): Promise<ApiResponse<DashboardInformation>> => {
-        const query = `SELECT handle, profile_image_url, creation_date FROM ${this.table} WHERE USERNAME = '${username}'`;
-        const queryResult = await this.psqlClient.client.query(query);
+    ): Promise<ApiResponse<DbUser>> => {
+        const queryResult = await this.psqlClient.userRepo?.findOne({
+            attributes: ["handle", "profile_image_url", "creation_date"],
+            where: { username },
+        });
 
-        if (queryResult.rowCount === 0) {
-            return new ApiResponse(id, {
-                creationDate: 0,
-                handle: undefined,
-                profileImageUrl: undefined,
-                username,
-            } as DashboardInformation);
+        if (!queryResult) {
+            return new ApiResponse(id);
         }
 
-        return new ApiResponse(id, {
-            ...queryResult.rows[0],
-            username,
-        } as DashboardInformation);
+        return new ApiResponse(id, queryResult.dataValues as DbUser);
     };
 
     /** @inheritdoc */
     public details = async (
         id: string,
         username: string,
-    ): Promise<ApiResponse<Partial<User>>> => {
-        const query = `SELECT first_name, last_name, email, handle, dob, username FROM ${this.table} WHERE USERNAME = '${username}'`;
+    ): Promise<ApiResponse<DbUser>> => {
+        const queryResult = await this.psqlClient.userRepo?.findOne({
+            attributes: [
+                "first_name",
+                "last_name",
+                "email",
+                "handle",
+                "dob",
+                "username",
+            ],
+            where: { username },
+        });
 
-        const queryResult = await this.psqlClient.client.query(query);
-
-        if (queryResult.rowCount === 0) {
-            return new ApiResponse(id, {});
+        if (!queryResult) {
+            return new ApiResponse(id);
         }
 
-        return new ApiResponse(
-            id,
-            convertPartialPsqlUserToUser(
-                queryResult.rows[0] as Partial<PsqlUser>,
-            ),
-        );
+        return new ApiResponse(id, queryResult.dataValues as DbUser);
     };
 }

@@ -1,6 +1,6 @@
 /* eslint-disable no-extra-boolean-cast -- disabled */
 import { PsqlUser } from "../../@types/user/PsqlUser";
-import { User } from "../../@types/user/User";
+import { DbUser } from "../../@types/user/DbUser";
 
 /**
  * Converts an local user to an PSQL compliant user, used mostly for editing user information, we need specific keys to successfully run the query
@@ -9,7 +9,7 @@ import { User } from "../../@types/user/User";
  * @returns The converted psql user
  */
 export const convertPartialUserToPsqlUser = (
-    partialUser: Partial<User>,
+    partialUser: Partial<DbUser>,
 ): Partial<PsqlUser> => {
     const partialPsqlUser: Partial<PsqlUser> = {};
 

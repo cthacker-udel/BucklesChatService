@@ -59,11 +59,12 @@ export class FriendService implements IFriendService {
         usernameTo: string,
         usernameFrom: string,
     ): Promise<boolean> => {
-        const query = `SELECT username, sender FROM ${this.requestTable} WHERE username = '${usernameTo}' AND sender = '${usernameFrom}';`;
+        // const query = `SELECT username, sender FROM ${this.requestTable} WHERE username = '${usernameTo}' AND sender = '${usernameFrom}';`;
 
-        const queryResult = await this.psqlClient.client.query(query);
+        // const queryResult = await this.psqlClient.client.query(query);
 
-        return queryResult.rowCount > 0;
+        // return queryResult.rowCount > 0;
+        return false;
     };
 
     /** @inheritdoc */
@@ -86,18 +87,20 @@ export class FriendService implements IFriendService {
             return new ApiResponse(id, false);
         }
 
-        const createFriendRequestQuery = `INSERT INTO ${
-            this.requestTable
-        }(username, sender, sent${
-            customMessage === undefined ? "" : ", custom_message"
-        }) VALUES ('${usernameTo}', '${usernameFrom}', ${Date.now()}${
-            customMessage === undefined ? "" : `, ${customMessage}`
-        });`;
+        // const createFriendRequestQuery = `INSERT INTO ${
+        //     this.requestTable
+        // }(username, sender, sent${
+        //     customMessage === undefined ? "" : ", custom_message"
+        // }) VALUES ('${usernameTo}', '${usernameFrom}', ${Date.now()}${
+        //     customMessage === undefined ? "" : `, ${customMessage}`
+        // });`;
 
-        const createFriendRequestQueryResult =
-            await this.psqlClient.client.query(createFriendRequestQuery);
+        // const createFriendRequestQueryResult =
+        //     await this.psqlClient.sqlize.query(createFriendRequestQuery);
 
-        return new ApiResponse(id, createFriendRequestQueryResult.rowCount > 0);
+        // return new ApiResponse(id, createFriendRequestQueryResult.rowCount > 0);
+
+        return new ApiResponse(id, false);
     };
 
     /** @inheritdoc */

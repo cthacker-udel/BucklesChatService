@@ -65,7 +65,7 @@ export class FriendController
         );
 
         super.setStatusFunction(() => {
-            if (this.psqlClient.client.database === undefined) {
+            if (!this.psqlClient.connected) {
                 throw new Error("PSQL Client is not connected");
             }
             if (this.mongoService === undefined) {

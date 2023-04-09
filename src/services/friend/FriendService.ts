@@ -109,21 +109,6 @@ export class FriendService implements IFriendService {
             return new ApiResponse(id, [] as string[]);
         }
 
-        const availableFriendsFromFriendRequest = `SELECT DISTINCT bfr.sender, bfr.username, bfr.custom_message, bfr.sent FROM ${this.userTable} as bu INNER JOIN ${this.requestTable} as bfr ON bfr.sender != 'a' WHERE bu.username != 'a';`;
-        const availableFriendsFromFriendsRequest = `SELECT DISTINCT bf.sender, bf.recipient, bf.accepted FROM ${this.userTable} as bu
-        INNER JOIN ${this.friendTable} as bf ON bf.sender != 'a' WHERE bu.username != 'a';`;
-        const availableFriendsFromBlockedRequest = `SELECT DISTINCT bb.sender, bb.username, bb.reason, bb.blocked FROM ${this.userTable} as bu INNER JOIN ${this.blockedTable} as bb ON bb.username != 'a' WHERE bu.username != 'a';
-        `;
-
-        const availbleFriendRequestResult = await this.psqlClient.client.query(
-            availableFriendsFromFriendRequest,
-        );
-        const availableFriendsResult = await this.psqlClient.client.query(
-            availableFriendsFromFriendsRequest,
-        );
-        const availableFriendsBlockedResult =
-            await this.psqlClient.client.query(
-                availableFriendsFromBlockedRequest,
-            );
+        return new ApiResponse(id, [] as string[]);
     };
 }

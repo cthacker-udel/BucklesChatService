@@ -91,8 +91,9 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username = request.query.username;
+            const username = request.query.username as string;
             const availableFriends = await this.friendService.availableFriends(
+                id,
                 username,
             );
             response.status(200);

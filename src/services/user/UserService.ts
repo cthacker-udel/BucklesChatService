@@ -12,6 +12,7 @@ import { PsqlUser } from "../../@types/user/PsqlUser";
 import { RedisService } from "../redis/RedisService";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { convertPartialPsqlUserToUser } from "../../helpers/api/convertPartialPsqlUserToUser";
+import { SqlizeUser } from "../../models/sequelize/SqlizeUser";
 
 export class UserService implements IUserService {
     /**
@@ -22,7 +23,7 @@ export class UserService implements IUserService {
     /**
      * The name of the PSQL table this service points to
      */
-    private readonly table: string = "BUCKLESUSER";
+    private readonly table: string = "BUCKLESUSERS";
 
     /**
      * The name of the PSQL table containing friend requests
@@ -58,12 +59,11 @@ export class UserService implements IUserService {
 
     /** @inheritdoc */
     public doesUsernameExist = async (id: string, username: string) => {
-        const foundUserQuery = await this.psqlClient.client.query(
-            `SELECT * FROM ${this.table} WHERE USERNAME = '${username}'`,
-        );
-        return new ApiResponse<boolean>(id).setData(
-            foundUserQuery.rowCount > 0,
-        );
+        const doesUserExist =
+            await this.psqlClient.userModel?.findOne<SqlizeUser>({
+                where: { username },
+            });
+        return new ApiResponse<boolean>(id).setData(Boolean(doesUserExist));
     };
 
     /** @inheritdoc */
@@ -73,14 +73,13 @@ export class UserService implements IUserService {
         password: string,
         passwordSalt: string,
     ): Promise<ApiResponse<boolean>> => {
-        const createUserResponse = await this.psqlClient.client.query(
-            `INSERT INTO ${
-                this.table
-            }(username, password, password_salt, creation_date) VALUES ('${username}', '${password}', '${passwordSalt}', ${Date.now()});`,
-        );
-        return new ApiResponse<boolean>(id).setData(
-            createUserResponse.rowCount > 0,
-        );
+        const createdUser = await this.psqlClient.userModel?.create({
+            password,
+            passwordSalt,
+            username,
+        });
+
+        return new ApiResponse<boolean>(id).setData(createdUser !== undefined);
     };
 
     /** @inheritdoc */
@@ -224,10 +223,8 @@ export class UserService implements IUserService {
 
     /** @inheritdoc */
     public totalUsers = async (id: string): Promise<ApiResponse<number>> => {
-        const queryResult = await this.psqlClient.client.query(
-            `SELECT * FROM ${this.table}`,
-        );
-        return new ApiResponse(id, queryResult.rowCount);
+        const total = await this.psqlClient.userModel?.count();
+        return new ApiResponse(id, total);
     };
 
     /** @inheritdoc */

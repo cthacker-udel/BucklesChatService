@@ -28,4 +28,16 @@ export interface IFriendService {
         _usernameFrom: string,
         _customMessage?: string,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Finds all friends available for request
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username which is requesting the available friends from
+     * @returns - The list of friends available for request
+     */
+    availableFriends: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<string[]>>;
 }

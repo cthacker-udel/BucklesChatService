@@ -84,6 +84,34 @@ export class FriendController
     }
 
     /** @inheritdoc */
+    public availableFriends = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const username = request.query.username;
+            const availableFriends = await this.friendService.availableFriends(
+                username,
+            );
+            response.status(200);
+            response.send(availableFriends);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
     public add = async (
         request: Request,
         response: Response,

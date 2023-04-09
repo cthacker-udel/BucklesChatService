@@ -10,10 +10,22 @@ export class FriendService implements IFriendService {
      */
     private readonly psqlClient: PSqlService;
 
+    private readonly userTable: string = "BUCKLESUSER";
+
     /**
      * The name of the PSQL table this service points to
      */
-    private readonly table: string = "BUCKLESFRIENDREQUEST";
+    private readonly requestTable: string = "BUCKLESFRIENDREQUEST";
+
+    /**
+     * The name of the PSQL table that houses all confirmed friends
+     */
+    private readonly friendTable: string = "BUCKLESFRIENDS";
+
+    /**
+     * The name of the PSQL table that houses all block requests
+     */
+    private readonly blockedTable: string = "BUCKLESBLOCKED";
 
     /**
      * The LoggerService instance used for logging exceptions to the mongo database
@@ -47,7 +59,7 @@ export class FriendService implements IFriendService {
         usernameTo: string,
         usernameFrom: string,
     ): Promise<boolean> => {
-        const query = `SELECT username, sender FROM ${this.table} WHERE username = '${usernameTo}' AND sender = '${usernameFrom}';`;
+        const query = `SELECT username, sender FROM ${this.requestTable} WHERE username = '${usernameTo}' AND sender = '${usernameFrom}';`;
 
         const queryResult = await this.psqlClient.client.query(query);
 
@@ -75,7 +87,7 @@ export class FriendService implements IFriendService {
         }
 
         const createFriendRequestQuery = `INSERT INTO ${
-            this.table
+            this.requestTable
         }(username, sender, sent${
             customMessage === undefined ? "" : ", custom_message"
         }) VALUES ('${usernameTo}', '${usernameFrom}', ${Date.now()}${
@@ -86,5 +98,32 @@ export class FriendService implements IFriendService {
             await this.psqlClient.client.query(createFriendRequestQuery);
 
         return new ApiResponse(id, createFriendRequestQueryResult.rowCount > 0);
+    };
+
+    /** @inheritdoc */
+    public availableFriends = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<string[]>> => {
+        if (username === undefined) {
+            return new ApiResponse(id, [] as string[]);
+        }
+
+        const availableFriendsFromFriendRequest = `SELECT DISTINCT bfr.sender, bfr.username, bfr.custom_message, bfr.sent FROM ${this.userTable} as bu INNER JOIN ${this.requestTable} as bfr ON bfr.sender != 'a' WHERE bu.username != 'a';`;
+        const availableFriendsFromFriendsRequest = `SELECT DISTINCT bf.sender, bf.recipient, bf.accepted FROM ${this.userTable} as bu
+        INNER JOIN ${this.friendTable} as bf ON bf.sender != 'a' WHERE bu.username != 'a';`;
+        const availableFriendsFromBlockedRequest = `SELECT DISTINCT bb.sender, bb.username, bb.reason, bb.blocked FROM ${this.userTable} as bu INNER JOIN ${this.blockedTable} as bb ON bb.username != 'a' WHERE bu.username != 'a';
+        `;
+
+        const availbleFriendRequestResult = await this.psqlClient.client.query(
+            availableFriendsFromFriendRequest,
+        );
+        const availableFriendsResult = await this.psqlClient.client.query(
+            availableFriendsFromFriendsRequest,
+        );
+        const availableFriendsBlockedResult =
+            await this.psqlClient.client.query(
+                availableFriendsFromBlockedRequest,
+            );
     };
 }

@@ -4,9 +4,9 @@ export type Friend = {
      */
     recipient: string;
     /**
-     * The person receiving the friendship, aka the initiator
+     * The person who initially sent the friend request, aka the initiator.
      */
-    receiver: string;
+    sender: string;
     /**
      * The time the friend request was accepted
      */

@@ -90,4 +90,17 @@ export interface IUserController {
      * @returns The information necessary when populating the edit forms
      */
     details: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Fetches all dashboard information from multiple usernames sent through the api pipeline.
+     * Requires a comma separated list of usernames in the query string
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns The dashboard information for all usernames sent in the request
+     */
+    bulkDashboardInformation: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
 }

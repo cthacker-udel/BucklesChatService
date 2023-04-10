@@ -20,4 +20,6 @@ export class User extends Model<
     declare passwordSalt: string;
     declare profileImageUrl?: string;
     declare profileImageRemovalUrl?: string;
+    declare createdAt?: Date;
+    declare updatedAt?: Date;
 }

@@ -7,6 +7,9 @@ import { LoggerService } from "../logger/LoggerService";
 import { DbUser } from "../../@types/user/DbUser";
 import { EncryptionService } from "../encryption/EncryptionService";
 import { RedisService } from "../redis/RedisService";
+import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
+import { Op } from "@sequelize/core";
+import { User } from "../../models/sequelize/User";
 
 export class UserService implements IUserService {
     /**
@@ -68,10 +71,13 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public findUserEncryptionData = async (
         username: string,
-    ): Promise<DbUser> => {
+    ): Promise<Partial<DbUser>> => {
         const foundUserEncryptionData = await this.psqlClient.userRepo?.findOne(
             {
-                attributes: ["password_salt", "password"],
+                attributes: [
+                    ["password_salt", "passwordSalt"],
+                    ["password", "password"],
+                ],
                 where: { username },
             },
         );
@@ -80,7 +86,7 @@ export class UserService implements IUserService {
             throw new Error("Invalid username supplied");
         }
 
-        return foundUserEncryptionData.dataValues as DbUser;
+        return foundUserEncryptionData.dataValues as Partial<DbUser>;
     };
 
     /** @inheritdoc */
@@ -90,18 +96,32 @@ export class UserService implements IUserService {
     ): Promise<ApiResponse<boolean>> => {
         const { username, password } = user;
         if (username === undefined || password === undefined) {
-            throw new Error("Must supply proper credentials when logging in");
+            return new ApiResponse(
+                id,
+                false,
+                new ApiErrorInfo(id).initException(
+                    new Error("Must supply proper credentials when logging in"),
+                ),
+            );
         }
 
         const foundEncryptedPasswordSalt = await this.findUserEncryptionData(
             username,
         );
 
+        console.log(foundEncryptedPasswordSalt);
+
         if (
             foundEncryptedPasswordSalt.passwordSalt === undefined ||
             foundEncryptedPasswordSalt.password === undefined
         ) {
-            throw new Error("No encryption data available for user");
+            return new ApiResponse(
+                id,
+                false,
+                new ApiErrorInfo(id).initException(
+                    new Error("No encryption data available for user"),
+                ),
+            );
         }
 
         const fixedEncryptionResult =
@@ -218,7 +238,12 @@ export class UserService implements IUserService {
         username: string,
     ): Promise<ApiResponse<DbUser>> => {
         const queryResult = await this.psqlClient.userRepo?.findOne({
-            attributes: ["handle", "profile_image_url", "created_at"],
+            attributes: [
+                "handle",
+                ["profile_image_url", "profileImageUrl"],
+                ["created_at", "createdAt"],
+                "username",
+            ],
             where: { username },
         });
 
@@ -230,10 +255,42 @@ export class UserService implements IUserService {
     };
 
     /** @inheritdoc */
+    public bulkDashboardInformation = async (
+        id: string,
+        usernames: string[],
+    ): Promise<ApiResponse<DbUser[]>> => {
+        const queryResult = await this.psqlClient.userRepo?.findAll({
+            attributes: [
+                "handle",
+                ["profile_image_url", "profileImageUrl"],
+                ["created_at", "createdAt"],
+                "username",
+            ],
+            where: {
+                username: {
+                    [Op.in]: usernames,
+                },
+            },
+        });
+
+        if (queryResult.length === 0) {
+            return new ApiResponse(id);
+        }
+
+        const dbUsers: DbUser[] = [];
+
+        queryResult.forEach((eachUser: User) => {
+            dbUsers.push(eachUser.dataValues as DbUser);
+        });
+
+        return new ApiResponse(id, dbUsers);
+    };
+
+    /** @inheritdoc */
     public details = async (
         id: string,
         username: string,
-    ): Promise<ApiResponse<DbUser>> => {
+    ): Promise<ApiResponse<Partial<DbUser>>> => {
         const queryResult = await this.psqlClient.userRepo?.findOne({
             attributes: [
                 "first_name",

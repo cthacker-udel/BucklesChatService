@@ -12,4 +12,6 @@ export class Block extends Model<
     declare username: string;
     declare reason?: string;
     declare sender: string;
+    declare createdAt?: Date;
+    declare updatedAt?: Date;
 }

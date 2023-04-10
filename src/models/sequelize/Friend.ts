@@ -12,4 +12,6 @@ export class Friend extends Model<
     declare recipient: string;
     declare sender: string;
     declare accepted?: number;
+    declare createdAt?: Date;
+    declare updatedAt?: Date;
 }

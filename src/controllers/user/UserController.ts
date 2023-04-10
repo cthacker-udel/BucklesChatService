@@ -76,6 +76,10 @@ export class UserController extends BaseController implements IUserController {
                     handler: this.dashboardInformation,
                 },
                 {
+                    endpoint: "bulkDashboardInformation",
+                    handler: this.bulkDashboardInformation,
+                },
+                {
                     endpoint: "details",
                     handler: this.details,
                 },
@@ -344,6 +348,33 @@ export class UserController extends BaseController implements IUserController {
                 await this.userService.dashboardInformation(id, username);
             response.status(200);
             response.send(userDashboardInformation);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public bulkDashboardInformation = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const usernames = (request.query.usernames as string).split(",");
+            const usersDashboardInformation =
+                await this.userService.bulkDashboardInformation(id, usernames);
+            response.status(200);
+            response.send(usersDashboardInformation);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

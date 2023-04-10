@@ -12,4 +12,6 @@ export class FriendRequest extends Model<
     declare username: string;
     declare customMessage?: string;
     declare sender: string;
+    declare createdAt?: Date;
+    declare updatedAt?: Date;
 }

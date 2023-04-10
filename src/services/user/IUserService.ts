@@ -39,7 +39,7 @@ export interface IUserService {
      * @param _username - The username which is used to lookup the user from the database
      * @returns The found encryption salt and password, and throws an exception if none is found
      */
-    findUserEncryptionData: (_username: string) => Promise<DbUser>;
+    findUserEncryptionData: (_username: string) => Promise<Partial<DbUser>>;
 
     /**
      * Attempts to log the user in
@@ -120,11 +120,26 @@ export interface IUserService {
     ) => Promise<ApiResponse<DbUser>>;
 
     /**
+     * Fetches the dashboard information for all usernames sent through in query string
+     *
+     * @param _id - The id to track the transaction
+     * @param _usernames - The usernames of all the users who we are acquiring their respective dashboard information
+     * @returns - The dashboard information relevant to all the users sent in the GET request's query string
+     */
+    bulkDashboardInformation: (
+        _id: string,
+        _usernames: string[],
+    ) => Promise<ApiResponse<DbUser[]>>;
+
+    /**
      * Fetches the user information relevant for editing from the database
      *
      * @param _id - The id to track the transaction
      * @param _username - The username which is used to access the information
      * @returns - The user information relevant for editing
      */
-    details: (_id: string, _username: string) => Promise<ApiResponse<DbUser>>;
+    details: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<Partial<DbUser>>>;
 }

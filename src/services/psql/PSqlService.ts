@@ -16,9 +16,6 @@ export class PSqlService {
     public constructor() {
         this.sqlize = new Sequelize(
             `postgres://${process.env.PSQL_USER}:${process.env.PSQL_PASSWORD}@${process.env.PSQL_HOST}:${process.env.PSQL_PORT}/${process.env.PSQL_DATABASE}`,
-            {
-                logging: false,
-            },
         );
 
         this.sqlize
@@ -40,6 +37,10 @@ export class PSqlService {
     public defineModels() {
         this.userRepo = User.init(
             {
+                createdAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
                 dob: {
                     allowNull: true,
                     type: DataTypes.INTEGER,
@@ -104,6 +105,10 @@ export class PSqlService {
                         isUrl: true,
                     },
                 },
+                updatedAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
                 username: {
                     allowNull: false,
                     type: DataTypes.STRING(70),
@@ -114,10 +119,15 @@ export class PSqlService {
                 sequelize: this.sqlize,
                 tableName: "bucklesusers",
                 timestamps: true,
+                underscored: true,
             },
         );
         this.blockRepo = Block.init(
             {
+                createdAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
                 reason: {
                     allowNull: true,
                     type: DataTypes.STRING(128),
@@ -132,6 +142,10 @@ export class PSqlService {
                     validate: {
                         isAlpha: true,
                     },
+                },
+                updatedAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
                 },
                 username: {
                     allowNull: false,
@@ -161,6 +175,10 @@ export class PSqlService {
                         isNumeric: true,
                     },
                 },
+                createdAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
                 recipient: {
                     allowNull: false,
                     references: {
@@ -183,6 +201,10 @@ export class PSqlService {
                         isAlpha: true,
                     },
                 },
+                updatedAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
             },
             {
                 sequelize: this.sqlize,
@@ -192,6 +214,10 @@ export class PSqlService {
         );
         this.friendRequestRepo = FriendRequest.init(
             {
+                createdAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
                 customMessage: {
                     allowNull: true,
                     type: DataTypes.STRING(128),
@@ -206,6 +232,10 @@ export class PSqlService {
                     validate: {
                         isAlpha: true,
                     },
+                },
+                updatedAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
                 },
                 username: {
                     allowNull: false,
@@ -223,6 +253,7 @@ export class PSqlService {
                 sequelize: this.sqlize,
                 tableName: "bucklesfriendrequests",
                 timestamps: true,
+                underscored: true,
             },
         );
 

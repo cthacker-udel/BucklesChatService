@@ -1,6 +1,5 @@
 import { Op } from "@sequelize/core";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
-import { FriendRequest } from "../../models/sequelize/FriendRequest";
 import { LoggerService } from "../logger/LoggerService";
 import { PSqlService } from "../psql/PSqlService";
 import { RedisService } from "../redis/RedisService";
@@ -98,8 +97,6 @@ export class FriendService implements IFriendService {
             },
         });
 
-        console.log(allAvailableUsers);
-
         const availableUsersPromisesCollections: Promise<number>[][] = [];
 
         allAvailableUsers.forEach((eachAvailableUser) => {
@@ -150,11 +147,18 @@ export class FriendService implements IFriendService {
 
         const results: number[][] = [];
         for (const eachPromiseArr of availableUsersPromisesCollections) {
+            // eslint-disable-next-line no-await-in-loop -- disabled, required
             results.push(await Promise.all(eachPromiseArr));
         }
 
-        console.log(results);
+        const availableFriends: string[] = [];
+        results.forEach((eachSubArray: number[], index: number) => {
+            const total = eachSubArray.reduce((e1, e2) => e1 + e2, 0);
+            if (total === 0) {
+                availableFriends.push(allAvailableUsers[index].username);
+            }
+        });
 
-        return new ApiResponse(id, [] as string[]);
+        return new ApiResponse(id, availableFriends);
     };
 }

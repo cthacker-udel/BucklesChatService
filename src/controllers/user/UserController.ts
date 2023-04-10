@@ -371,10 +371,19 @@ export class UserController extends BaseController implements IUserController {
         try {
             id = getIdFromRequest(request);
             const usernames = (request.query.usernames as string).split(",");
-            const usersDashboardInformation =
-                await this.userService.bulkDashboardInformation(id, usernames);
-            response.status(200);
-            response.send(usersDashboardInformation);
+
+            if (usernames.length === 0) {
+                response.status(200);
+                response.send([]);
+            } else {
+                const usersDashboardInformation =
+                    await this.userService.bulkDashboardInformation(
+                        id,
+                        usernames,
+                    );
+                response.status(200);
+                response.send(usersDashboardInformation);
+            }
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

@@ -266,6 +266,7 @@ export class UserService implements IUserService {
                 ["created_at", "createdAt"],
                 "username",
             ],
+            order: [["username", "ASC"]],
             where: {
                 username: {
                     [Op.in]: usernames,

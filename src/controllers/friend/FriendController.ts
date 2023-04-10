@@ -64,6 +64,11 @@ export class FriendController
             BucklesRouteType.POST,
         );
 
+        super.addRoutes(
+            [{ endpoint: "availableFriends", handler: this.availableFriends }],
+            BucklesRouteType.GET,
+        );
+
         super.setStatusFunction(() => {
             if (!this.psqlClient.connected) {
                 throw new Error("PSQL Client is not connected");

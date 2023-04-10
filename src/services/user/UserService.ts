@@ -15,16 +15,6 @@ export class UserService implements IUserService {
     private readonly psqlClient: PSqlService;
 
     /**
-     * The name of the PSQL table this service points to
-     */
-    private readonly table: string = "BUCKLESUSERS";
-
-    /**
-     * The name of the PSQL table containing friend requests
-     */
-    private readonly friendRequestTable: string = "BUCKLESFRIENDREQUEST";
-
-    /**
      * The LoggerService instance used for logging exceptions to the mongo database
      */
     private readonly loggerService: LoggerService;
@@ -79,19 +69,18 @@ export class UserService implements IUserService {
     public findUserEncryptionData = async (
         username: string,
     ): Promise<DbUser> => {
-        const foundUserEncryptionData2 =
-            await this.psqlClient.userRepo?.findOne({
+        const foundUserEncryptionData = await this.psqlClient.userRepo?.findOne(
+            {
                 attributes: ["password_salt", "password"],
                 where: { username },
-            });
+            },
+        );
 
-        console.log(foundUserEncryptionData2);
-
-        if (!foundUserEncryptionData2) {
+        if (!foundUserEncryptionData) {
             throw new Error("Invalid username supplied");
         }
 
-        return foundUserEncryptionData2.dataValues as DbUser;
+        return foundUserEncryptionData.dataValues as DbUser;
     };
 
     /** @inheritdoc */
@@ -229,7 +218,7 @@ export class UserService implements IUserService {
         username: string,
     ): Promise<ApiResponse<DbUser>> => {
         const queryResult = await this.psqlClient.userRepo?.findOne({
-            attributes: ["handle", "profile_image_url", "creation_date"],
+            attributes: ["handle", "profile_image_url", "created_at"],
             where: { username },
         });
 

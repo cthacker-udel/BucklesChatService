@@ -1,21 +1,24 @@
+/* eslint-disable max-lines-per-function -- disabled */
 import { User } from "../../models/sequelize/User";
 import { Block } from "../../models/sequelize/Block";
 import { FriendRequest } from "../../models/sequelize/FriendRequest";
 import { Friend } from "../../models/sequelize/Friend";
-import { Sequelize, Repository } from "sequelize-typescript";
+import { Sequelize, ModelStatic, DataTypes } from "@sequelize/core";
 
 export class PSqlService {
     public sqlize: Sequelize;
     public connected: boolean;
-    public userRepo: Repository<User>;
-    public blockRepo: Repository<Block>;
-    public friendRequestRepo: Repository<FriendRequest>;
-    public friendRepo: Repository<Friend>;
+    public userRepo: ModelStatic<User>;
+    public blockRepo: ModelStatic<Block>;
+    public friendRequestRepo: ModelStatic<FriendRequest>;
+    public friendRepo: ModelStatic<Friend>;
 
     public constructor() {
         this.sqlize = new Sequelize(
             `postgres://${process.env.PSQL_USER}:${process.env.PSQL_PASSWORD}@${process.env.PSQL_HOST}:${process.env.PSQL_PORT}/${process.env.PSQL_DATABASE}`,
-            { repositoryMode: true },
+            {
+                logging: false,
+            },
         );
 
         this.sqlize
@@ -31,11 +34,203 @@ export class PSqlService {
                 );
                 this.connected = false;
             });
+        this.defineModels();
+    }
 
-        this.sqlize.addModels([Block, Friend, FriendRequest, User]);
-        this.userRepo = this.sqlize.getRepository(User);
-        this.blockRepo = this.sqlize.getRepository(Block);
-        this.friendRequestRepo = this.sqlize.getRepository(FriendRequest);
-        this.friendRepo = this.sqlize.getRepository(Friend);
+    public defineModels() {
+        this.userRepo = User.init(
+            {
+                dob: {
+                    allowNull: true,
+                    type: DataTypes.INTEGER,
+                    validate: {
+                        isInt: true,
+                        isNumeric: true,
+                    },
+                },
+                email: {
+                    allowNull: true,
+                    type: DataTypes.STRING(120),
+                    validate: {
+                        isEmail: true,
+                    },
+                },
+                firstName: {
+                    allowNull: true,
+                    type: DataTypes.STRING(70),
+                    validate: {
+                        isAlphanumeric: true,
+                    },
+                },
+                handle: {
+                    allowNull: true,
+                    type: DataTypes.STRING(12),
+                    validate: {
+                        isAlphanumeric: true,
+                    },
+                },
+                lastName: {
+                    allowNull: true,
+                    type: DataTypes.STRING(70),
+                    validate: {
+                        isAlpha: true,
+                    },
+                },
+                password: {
+                    allowNull: false,
+                    type: DataTypes.STRING(128),
+                    validate: {
+                        notNull: true,
+                    },
+                },
+                passwordSalt: {
+                    allowNull: false,
+                    type: DataTypes.STRING(128),
+                    validate: {
+                        notNull: true,
+                    },
+                },
+                profileImageRemovalUrl: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                    validate: {
+                        isUrl: true,
+                    },
+                },
+                profileImageUrl: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                    validate: {
+                        isUrl: true,
+                    },
+                },
+                username: {
+                    allowNull: false,
+                    type: DataTypes.STRING(70),
+                    unique: true,
+                },
+            },
+            {
+                sequelize: this.sqlize,
+                tableName: "bucklesusers",
+                timestamps: true,
+            },
+        );
+        this.blockRepo = Block.init(
+            {
+                reason: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                },
+                sender: {
+                    allowNull: false,
+                    references: {
+                        key: "username",
+                        model: User,
+                    },
+                    type: DataTypes.STRING(70),
+                    validate: {
+                        isAlpha: true,
+                    },
+                },
+                username: {
+                    allowNull: false,
+                    references: {
+                        key: "username",
+                        model: User,
+                    },
+                    type: DataTypes.STRING(70),
+                    validate: {
+                        isAlpha: true,
+                    },
+                },
+            },
+            {
+                sequelize: this.sqlize,
+                tableName: "bucklesblocks",
+                timestamps: true,
+            },
+        );
+        this.friendRepo = Friend.init(
+            {
+                accepted: {
+                    allowNull: true,
+                    type: DataTypes.BIGINT,
+                    validate: {
+                        isInt: true,
+                        isNumeric: true,
+                    },
+                },
+                recipient: {
+                    allowNull: false,
+                    references: {
+                        key: "username",
+                        model: User,
+                    },
+                    type: DataTypes.STRING(70),
+                    validate: {
+                        isAlpha: true,
+                    },
+                },
+                sender: {
+                    allowNull: false,
+                    references: {
+                        key: "username",
+                        model: User,
+                    },
+                    type: DataTypes.STRING(70),
+                    validate: {
+                        isAlpha: true,
+                    },
+                },
+            },
+            {
+                sequelize: this.sqlize,
+                tableName: "bucklesfriends",
+                timestamps: true,
+            },
+        );
+        this.friendRequestRepo = FriendRequest.init(
+            {
+                customMessage: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                },
+                sender: {
+                    allowNull: false,
+                    references: {
+                        key: "username",
+                        model: User,
+                    },
+                    type: DataTypes.STRING(70),
+                    validate: {
+                        isAlpha: true,
+                    },
+                },
+                username: {
+                    allowNull: false,
+                    references: {
+                        key: "username",
+                        model: User,
+                    },
+                    type: DataTypes.STRING(70),
+                    validate: {
+                        isAlpha: true,
+                    },
+                },
+            },
+            {
+                sequelize: this.sqlize,
+                tableName: "bucklesfriendrequests",
+                timestamps: true,
+            },
+        );
+
+        this.userRepo.hasMany(this.blockRepo);
+        this.blockRepo.belongsTo(this.userRepo);
+        this.userRepo.hasMany(this.friendRepo);
+        this.friendRepo.belongsTo(this.userRepo);
+        this.userRepo.hasMany(this.friendRequestRepo);
+        this.friendRequestRepo.belongsTo(this.userRepo);
     }
 }

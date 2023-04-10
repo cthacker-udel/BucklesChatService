@@ -1,4 +1,6 @@
+import { Op } from "@sequelize/core";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { FriendRequest } from "../../models/sequelize/FriendRequest";
 import { LoggerService } from "../logger/LoggerService";
 import { PSqlService } from "../psql/PSqlService";
 import { RedisService } from "../redis/RedisService";
@@ -9,23 +11,6 @@ export class FriendService implements IFriendService {
      * The PSQL client instance
      */
     private readonly psqlClient: PSqlService;
-
-    private readonly userTable: string = "BUCKLESUSER";
-
-    /**
-     * The name of the PSQL table this service points to
-     */
-    private readonly requestTable: string = "BUCKLESFRIENDREQUEST";
-
-    /**
-     * The name of the PSQL table that houses all confirmed friends
-     */
-    private readonly friendTable: string = "BUCKLESFRIENDS";
-
-    /**
-     * The name of the PSQL table that houses all block requests
-     */
-    private readonly blockedTable: string = "BUCKLESBLOCKED";
 
     /**
      * The LoggerService instance used for logging exceptions to the mongo database
@@ -59,12 +44,11 @@ export class FriendService implements IFriendService {
         usernameTo: string,
         usernameFrom: string,
     ): Promise<boolean> => {
-        // const query = `SELECT username, sender FROM ${this.requestTable} WHERE username = '${usernameTo}' AND sender = '${usernameFrom}';`;
-
-        // const queryResult = await this.psqlClient.client.query(query);
-
-        // return queryResult.rowCount > 0;
-        return false;
+        const doesFriendRequestAlreadyExist =
+            await this.psqlClient.friendRequestRepo.findOne({
+                where: { sender: usernameFrom, username: usernameTo },
+            });
+        return doesFriendRequestAlreadyExist !== null;
     };
 
     /** @inheritdoc */
@@ -87,20 +71,13 @@ export class FriendService implements IFriendService {
             return new ApiResponse(id, false);
         }
 
-        // const createFriendRequestQuery = `INSERT INTO ${
-        //     this.requestTable
-        // }(username, sender, sent${
-        //     customMessage === undefined ? "" : ", custom_message"
-        // }) VALUES ('${usernameTo}', '${usernameFrom}', ${Date.now()}${
-        //     customMessage === undefined ? "" : `, ${customMessage}`
-        // });`;
+        const insertionResult = await this.psqlClient.friendRequestRepo.create({
+            customMessage,
+            sender: usernameFrom,
+            username: usernameTo,
+        });
 
-        // const createFriendRequestQueryResult =
-        //     await this.psqlClient.sqlize.query(createFriendRequestQuery);
-
-        // return new ApiResponse(id, createFriendRequestQueryResult.rowCount > 0);
-
-        return new ApiResponse(id, false);
+        return new ApiResponse(id, insertionResult !== null);
     };
 
     /** @inheritdoc */
@@ -111,6 +88,72 @@ export class FriendService implements IFriendService {
         if (username === undefined) {
             return new ApiResponse(id, [] as string[]);
         }
+
+        const allAvailableUsers = await this.psqlClient.userRepo.findAll({
+            attributes: ["username"],
+            where: {
+                username: {
+                    [Op.not]: username,
+                },
+            },
+        });
+
+        console.log(allAvailableUsers);
+
+        const availableUsersPromisesCollections: Promise<number>[][] = [];
+
+        allAvailableUsers.forEach((eachAvailableUser) => {
+            console.log("user = ", eachAvailableUser.username);
+            const availableUserPromise: Promise<number>[] = [];
+            availableUserPromise.push(
+                this.psqlClient.friendRequestRepo.count({
+                    where: {
+                        sender: username,
+                        username: eachAvailableUser.username,
+                    },
+                }),
+            );
+            availableUserPromise.push(
+                this.psqlClient.blockRepo.count({
+                    where: {
+                        [Op.or]: [
+                            {
+                                sender: username,
+                                username: eachAvailableUser.username,
+                            },
+                            {
+                                sender: eachAvailableUser.username,
+                                username,
+                            },
+                        ],
+                    },
+                }),
+            );
+            availableUserPromise.push(
+                this.psqlClient.friendRepo.count({
+                    where: {
+                        [Op.or]: [
+                            {
+                                recipient: eachAvailableUser.username,
+                                sender: username,
+                            },
+                            {
+                                recipient: username,
+                                sender: eachAvailableUser.username,
+                            },
+                        ],
+                    },
+                }),
+            );
+            availableUsersPromisesCollections.push(availableUserPromise);
+        });
+
+        const results: number[][] = [];
+        for (const eachPromiseArr of availableUsersPromisesCollections) {
+            results.push(await Promise.all(eachPromiseArr));
+        }
+
+        console.log(results);
 
         return new ApiResponse(id, [] as string[]);
     };

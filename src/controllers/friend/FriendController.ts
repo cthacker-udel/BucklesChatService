@@ -65,7 +65,13 @@ export class FriendController
         );
 
         super.addRoutes(
-            [{ endpoint: "availableFriends", handler: this.availableFriends }],
+            [
+                {
+                    endpoint: "availableFriends",
+                    handler: this.availableFriends,
+                },
+                { endpoint: "pendingRequests", handler: this.pendingRequests },
+            ],
             BucklesRouteType.GET,
         );
 
@@ -135,6 +141,41 @@ export class FriendController
             );
             response.status(200);
             response.send(friendRequestResult);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public pendingRequests = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const username = request.query.username;
+
+            if (username === undefined) {
+                throw new Error("Must supply username");
+            }
+
+            const allPendingFriendRequests =
+                await this.friendService.pendingRequests(
+                    id,
+                    username as unknown as string,
+                );
+            response.status(200);
+            response.send(allPendingFriendRequests);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

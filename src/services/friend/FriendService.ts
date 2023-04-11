@@ -4,6 +4,7 @@ import { LoggerService } from "../logger/LoggerService";
 import { PSqlService } from "../psql/PSqlService";
 import { RedisService } from "../redis/RedisService";
 import { IFriendService } from "./IFriendService";
+import { FriendRequest } from "../../models/sequelize/FriendRequest";
 
 export class FriendService implements IFriendService {
     /**
@@ -159,5 +160,23 @@ export class FriendService implements IFriendService {
         });
 
         return new ApiResponse(id, availableFriends);
+    };
+
+    /** @inheritdoc */
+    public pendingRequests = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<FriendRequest[]>> => {
+        const foundFriendRequests =
+            await this.psqlClient.friendRequestRepo.findAll({
+                attributes: [
+                    "username",
+                    "sender",
+                    ["custom_message", "customMessage"],
+                    ["created_at", "createdAt"],
+                ],
+                where: { username },
+            });
+        return new ApiResponse(id, foundFriendRequests);
     };
 }

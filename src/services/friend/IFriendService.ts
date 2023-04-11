@@ -1,4 +1,5 @@
 import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { FriendRequest } from "../../models/sequelize/FriendRequest";
 
 export interface IFriendService {
     /**
@@ -40,4 +41,16 @@ export interface IFriendService {
         _id: string,
         _username: string,
     ) => Promise<ApiResponse<string[]>>;
+
+    /**
+     * Gets all pending friend requests for the user specified
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - the username which is requesting to fetch all of it's pending friend requests
+     * @returns - The list of pending friend requests
+     */
+    pendingRequests: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<FriendRequest[]>>;
 }

@@ -18,4 +18,13 @@ export interface IFriendController {
      * @returns The available friends for the user
      */
     availableFriends: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Gets all pending requests for the specified user
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns All the pending friend requests
+     */
+    pendingRequests: (_request: Request, _response: Response) => Promise<void>;
 }

@@ -16,6 +16,9 @@ export class PSqlService {
     public constructor() {
         this.sqlize = new Sequelize(
             `postgres://${process.env.PSQL_USER}:${process.env.PSQL_PASSWORD}@${process.env.PSQL_HOST}:${process.env.PSQL_PORT}/${process.env.PSQL_DATABASE}`,
+            {
+                logging: false,
+            },
         );
 
         this.sqlize
@@ -256,12 +259,5 @@ export class PSqlService {
                 underscored: true,
             },
         );
-
-        this.userRepo.hasMany(this.blockRepo);
-        this.blockRepo.belongsTo(this.userRepo);
-        this.userRepo.hasMany(this.friendRepo);
-        this.friendRepo.belongsTo(this.userRepo);
-        this.userRepo.hasMany(this.friendRequestRepo);
-        this.friendRequestRepo.belongsTo(this.userRepo);
     }
 }

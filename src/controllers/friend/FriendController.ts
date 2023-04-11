@@ -11,10 +11,10 @@ import { RedisService } from "../../services/redis/RedisService";
 import { BaseController } from "../base/BaseController";
 import { IFriendController } from "./IFriendController";
 import { FriendService } from "../../services/friend/FriendService";
-import { FriendRequest } from "../../@types/friend/FriendRequest";
 import { exceptionToExceptionLog } from "../../helpers/logger/exceptionToExceptionLog";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
+import { SendFriendRequest } from "./DTO/SendFriendRequest";
 
 export class FriendController
     extends BaseController
@@ -60,7 +60,7 @@ export class FriendController
         this.redisService = _redisService;
 
         super.addRoutes(
-            [{ endpoint: "add", handler: this.add }],
+            [{ endpoint: "sendRequest", handler: this.sendRequest }],
             BucklesRouteType.POST,
         );
 
@@ -118,18 +118,16 @@ export class FriendController
     };
 
     /** @inheritdoc */
-    public add = async (
+    public sendRequest = async (
         request: Request,
         response: Response,
     ): Promise<void> => {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const usernameFrom = request.query.usernameFrom as string;
-            const usernameTo = request.query.usernameTo as string;
-            const customMessage = (request.body as Partial<FriendRequest>)
-                .customMessage;
-            const friendRequestResult = await this.friendService.add(
+            const { customMessage, usernameTo, usernameFrom } =
+                request.body as SendFriendRequest;
+            const friendRequestResult = await this.friendService.sendRequest(
                 id,
                 usernameTo,
                 usernameFrom,

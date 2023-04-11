@@ -8,7 +8,7 @@ export interface IFriendController {
      * @param _response - The client response
      * @returns The information necessary when populating the edit forms
      */
-    add: (_request: Request, _response: Response) => Promise<void>;
+    sendRequest: (_request: Request, _response: Response) => Promise<void>;
 
     /**
      * Attempts to find all the available friends for the user

@@ -22,7 +22,7 @@ export interface IFriendService {
      * @param _customMessage - The custom message which we are sending along with the friend request
      * @returns - Whether or not the friend request was successful
      */
-    add: (
+    sendRequest: (
         _id: string,
         _usernameTo: string,
         _usernameFrom: string,

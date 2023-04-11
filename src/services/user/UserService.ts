@@ -109,8 +109,6 @@ export class UserService implements IUserService {
             username,
         );
 
-        console.log(foundEncryptedPasswordSalt);
-
         if (
             foundEncryptedPasswordSalt.passwordSalt === undefined ||
             foundEncryptedPasswordSalt.password === undefined

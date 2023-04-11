@@ -51,7 +51,7 @@ export class FriendService implements IFriendService {
     };
 
     /** @inheritdoc */
-    public add = async (
+    public sendRequest = async (
         id: string,
         usernameTo: string,
         usernameFrom: string,
@@ -100,7 +100,6 @@ export class FriendService implements IFriendService {
         const availableUsersPromisesCollections: Promise<number>[][] = [];
 
         allAvailableUsers.forEach((eachAvailableUser) => {
-            console.log("user = ", eachAvailableUser.username);
             const availableUserPromise: Promise<number>[] = [];
             availableUserPromise.push(
                 this.psqlClient.friendRequestRepo.count({

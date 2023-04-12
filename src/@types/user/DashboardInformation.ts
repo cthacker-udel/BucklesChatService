@@ -1,6 +1,6 @@
-export type DashboardInformation = {
-    handle?: string;
-    profileImageUrl?: string;
-    username?: string;
-    creationDate?: number;
+import { DbUser } from "./DbUser";
+
+export type DashboardInformation = Partial<DbUser> & {
+    numberOfFriends?: number;
+    friendsInformation?: Partial<DbUser>[];
 };

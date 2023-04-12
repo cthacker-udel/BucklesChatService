@@ -10,6 +10,7 @@ import { RedisService } from "../redis/RedisService";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { Op } from "@sequelize/core";
 import { User } from "../../models/sequelize/User";
+import { DashboardInformation } from "../../@types/user/DashboardInformation";
 
 export class UserService implements IUserService {
     /**
@@ -245,18 +246,30 @@ export class UserService implements IUserService {
             where: { username },
         });
 
+        const { data: numberOfFriends } = await this.numberOfFriends(
+            id,
+            username,
+        );
+
+        const { data: bulkFriendsDashboardInformation } =
+            await this.friendsDashboardInformation(id, username);
+
         if (!queryResult) {
             return new ApiResponse(id);
         }
 
-        return new ApiResponse(id, queryResult.dataValues as DbUser);
+        return new ApiResponse(id, {
+            ...queryResult.dataValues,
+            friendsInformation: bulkFriendsDashboardInformation,
+            numberOfFriends,
+        } as DashboardInformation);
     };
 
     /** @inheritdoc */
     public bulkDashboardInformation = async (
         id: string,
         usernames: string[],
-    ): Promise<ApiResponse<DbUser[]>> => {
+    ): Promise<ApiResponse<DashboardInformation[]>> => {
         const queryResult = await this.psqlClient.userRepo?.findAll({
             attributes: [
                 "handle",
@@ -276,7 +289,7 @@ export class UserService implements IUserService {
             return new ApiResponse(id);
         }
 
-        const dbUsers: DbUser[] = [];
+        const dbUsers: DashboardInformation[] = [];
 
         queryResult.forEach((eachUser: User) => {
             dbUsers.push(eachUser.dataValues as DbUser);
@@ -289,7 +302,7 @@ export class UserService implements IUserService {
     public details = async (
         id: string,
         username: string,
-    ): Promise<ApiResponse<Partial<DbUser>>> => {
+    ): Promise<ApiResponse<DashboardInformation>> => {
         const queryResult = await this.psqlClient.userRepo?.findOne({
             attributes: [
                 "first_name",
@@ -307,5 +320,39 @@ export class UserService implements IUserService {
         }
 
         return new ApiResponse(id, queryResult.dataValues as DbUser);
+    };
+
+    /** @inheritdoc */
+    public numberOfFriends = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<number>> => {
+        const queryResult = await this.psqlClient.friendRepo.findAll({
+            attributes: ["sender", "recipient"],
+            where: { [Op.or]: [{ recipient: username }, { sender: username }] },
+        });
+
+        return new ApiResponse(id, queryResult.length);
+    };
+
+    /** @inheritdoc */
+    public friendsDashboardInformation = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<DashboardInformation[]>> => {
+        const sentFriendUsernames = await this.psqlClient.friendRepo.findAll({
+            attributes: ["recipient"],
+            where: { sender: username },
+        });
+        const receivedUsernames = await this.psqlClient.friendRepo.findAll({
+            attributes: ["sender"],
+            where: { recipient: username },
+        });
+        const amalgamatedUsernames = sentFriendUsernames
+            .map((eachFriend) => eachFriend.recipient)
+            .concat(receivedUsernames.map((eachFriend) => eachFriend.sender));
+        const allUsernamesDashboardInformation =
+            await this.bulkDashboardInformation(id, amalgamatedUsernames);
+        return allUsernamesDashboardInformation;
     };
 }

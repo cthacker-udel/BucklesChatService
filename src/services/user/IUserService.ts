@@ -1,3 +1,4 @@
+import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { DbUser } from "../../@types/user/DbUser";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 
@@ -142,4 +143,28 @@ export interface IUserService {
         _id: string,
         _username: string,
     ) => Promise<ApiResponse<Partial<DbUser>>>;
+
+    /**
+     * Fetches the # of friends the user has
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username which is used to access the information
+     * @returns - The number of friends that belong to the user specified in the `_username` argument
+     */
+    numberOfFriends: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<number>>;
+
+    /**
+     * Fetches all the dashboard information of all of the user's friends
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username which will be used to fetch all the friend dashboard information
+     * @returns - All the friend's dashboard information
+     */
+    friendsDashboardInformation: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<DashboardInformation[]>>;
 }

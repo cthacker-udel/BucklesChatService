@@ -27,4 +27,22 @@ export interface IFriendController {
      * @returns All the pending friend requests
      */
     pendingRequests: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Accepts a friend request
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns Whether the request was successfully accepted or not
+     */
+    acceptRequest: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Rejects a friend request
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns Whether or not the request was successfully rejected
+     */
+    rejectRequest: (_request: Request, _response: Response) => Promise<void>;
 }

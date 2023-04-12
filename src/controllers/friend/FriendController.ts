@@ -14,7 +14,7 @@ import { FriendService } from "../../services/friend/FriendService";
 import { exceptionToExceptionLog } from "../../helpers/logger/exceptionToExceptionLog";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
-import { SendFriendRequest } from "./DTO/SendFriendRequest";
+import { FriendRequestPayload } from "./DTO/FriendRequestPayload";
 
 export class FriendController
     extends BaseController
@@ -60,10 +60,13 @@ export class FriendController
         this.redisService = _redisService;
 
         super.addRoutes(
-            [{ endpoint: "sendRequest", handler: this.sendRequest }],
+            [
+                { endpoint: "sendRequest", handler: this.sendRequest },
+                { endpoint: "acceptRequest", handler: this.acceptRequest },
+                { endpoint: "rejectRequest", handler: this.rejectRequest },
+            ],
             BucklesRouteType.POST,
         );
-
         super.addRoutes(
             [
                 {
@@ -132,7 +135,7 @@ export class FriendController
         try {
             id = getIdFromRequest(request);
             const { customMessage, usernameTo, usernameFrom } =
-                request.body as SendFriendRequest;
+                request.body as FriendRequestPayload;
             const friendRequestResult = await this.friendService.sendRequest(
                 id,
                 usernameTo,
@@ -176,6 +179,86 @@ export class FriendController
                 );
             response.status(200);
             response.send(allPendingFriendRequests);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public acceptRequest = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const requestPayload = request.body as FriendRequestPayload;
+            if (
+                requestPayload.usernameTo === undefined ||
+                requestPayload.usernameFrom === undefined
+            ) {
+                throw new Error("Must supply both usernames to accept request");
+            }
+
+            const { usernameTo, usernameFrom } = requestPayload;
+
+            const acceptResult = await this.friendService.acceptRequest(
+                id,
+                usernameTo,
+                usernameFrom,
+            );
+            response.status(acceptResult.data === undefined ? 400 : 200);
+            response.send(acceptResult);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    public rejectRequest = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const requestPayload = request.body as FriendRequestPayload;
+
+            if (
+                requestPayload.usernameTo === undefined ||
+                requestPayload.usernameFrom === undefined
+            ) {
+                throw new Error(
+                    "Unable to reject request, invalid usernames sent",
+                );
+            }
+
+            const { usernameTo, usernameFrom } = requestPayload;
+
+            const rejectResult = await this.friendService.rejectRequest(
+                id,
+                usernameTo,
+                usernameFrom,
+            );
+            response.status(rejectResult.data === undefined ? 400 : 200);
+            response.send(rejectResult);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

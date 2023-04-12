@@ -1,7 +1,7 @@
 /**
  * Once the friend request is accepted, the row is removed from the database
  */
-export type FriendRequest = {
+export type FriendRequestDTO = {
     /**
      * The target, aka the person receiving the message
      */
@@ -11,11 +11,15 @@ export type FriendRequest = {
      */
     customMessage?: string;
     /**
-     * The time it was sent
-     */
-    sent: number;
-    /**
      * The person who sent the request
      */
     sender: string;
+    /**
+     * The profile image of the sender
+     */
+    senderProfileImageUrl?: string;
+    /**
+     * The time it was created
+     */
+    createdAt?: Date;
 };

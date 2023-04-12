@@ -5,6 +5,8 @@ import { PSqlService } from "../psql/PSqlService";
 import { RedisService } from "../redis/RedisService";
 import { IFriendService } from "./IFriendService";
 import { FriendRequest } from "../../models/sequelize/FriendRequest";
+import { User } from "../../models/sequelize/User";
+import { FriendRequestDTO } from "../../@types/friend/FriendRequestDTO";
 
 export class FriendService implements IFriendService {
     /**
@@ -166,7 +168,7 @@ export class FriendService implements IFriendService {
     public pendingRequests = async (
         id: string,
         username: string,
-    ): Promise<ApiResponse<FriendRequest[]>> => {
+    ): Promise<ApiResponse<FriendRequestDTO[]>> => {
         const foundFriendRequests =
             await this.psqlClient.friendRequestRepo.findAll({
                 attributes: [
@@ -177,6 +179,88 @@ export class FriendService implements IFriendService {
                 ],
                 where: { username },
             });
-        return new ApiResponse(id, foundFriendRequests);
+        const senderProfilePictures: Promise<User | null>[] = [];
+        foundFriendRequests.forEach((eachFriendRequest: FriendRequest) => {
+            senderProfilePictures.push(
+                this.psqlClient.userRepo.findOne({
+                    attributes: [["profile_image_url", "profileImageUrl"]],
+                    where: { username: eachFriendRequest.sender },
+                }),
+            );
+        });
+        const profilePictureUrls: (string | undefined)[] = (
+            await Promise.all(senderProfilePictures)
+        ).map((eachUser: User | null) => {
+            if (eachUser) {
+                return eachUser.profileImageUrl;
+            }
+            return undefined;
+        });
+
+        const finalizedRequests = foundFriendRequests.map(
+            (
+                eachFoundFriendRequest: FriendRequest,
+                _index: number,
+            ): FriendRequestDTO => ({
+                ...eachFoundFriendRequest.dataValues,
+                senderProfileImageUrl: profilePictureUrls[_index],
+            }),
+        );
+
+        return new ApiResponse(id, finalizedRequests);
+    };
+
+    /** @inheritdoc */
+    public acceptRequest = async (
+        id: string,
+        usernameTo: string,
+        usernameFrom: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const doesFriendRequestExist = await this.doesFriendRequestExist(
+            usernameTo,
+            usernameFrom,
+        );
+
+        if (!doesFriendRequestExist) {
+            return new ApiResponse(id, false);
+        }
+
+        const removeRequest = await this.psqlClient.friendRequestRepo.destroy({
+            where: { sender: usernameFrom, username: usernameTo },
+        });
+
+        if (removeRequest === 0) {
+            return new ApiResponse(id, false);
+        }
+
+        const addAsFriend = await this.psqlClient.friendRepo.create({
+            accepted: Date.now(),
+            recipient: usernameTo,
+            sender: usernameFrom,
+        });
+
+        return new ApiResponse(id, Boolean(addAsFriend));
+    };
+
+    /** @inheritdoc */
+    public rejectRequest = async (
+        id: string,
+        usernameTo: string,
+        usernameFrom: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const doesFriendRequestExist = await this.doesFriendRequestExist(
+            usernameTo,
+            usernameFrom,
+        );
+
+        if (!doesFriendRequestExist) {
+            return new ApiResponse(id, false);
+        }
+
+        const destroyResult = await this.psqlClient.friendRequestRepo.destroy({
+            where: { sender: usernameFrom, username: usernameTo },
+        });
+
+        return new ApiResponse(id, destroyResult > 0);
     };
 }

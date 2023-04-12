@@ -1,5 +1,5 @@
+import { FriendRequestDTO } from "../../@types/friend/FriendRequestDTO";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
-import { FriendRequest } from "../../models/sequelize/FriendRequest";
 
 export interface IFriendService {
     /**
@@ -52,5 +52,33 @@ export interface IFriendService {
     pendingRequests: (
         _id: string,
         _username: string,
-    ) => Promise<ApiResponse<FriendRequest[]>>;
+    ) => Promise<ApiResponse<FriendRequestDTO[]>>;
+
+    /**
+     * Accepts the friend request sent to the user (usernameTo)
+     *
+     * @param _id - The id to track the transaction
+     * @param _usernameTo - The username whom received the friend request
+     * @param _usernameFrom - The username where the request was coming from
+     * @returns - Whether the request was successfully accepted or not
+     */
+    acceptRequest: (
+        _id: string,
+        _usernameTo: string,
+        _usernameFrom: string,
+    ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Rejects the friend request sent to the user (usernameTo)
+     *
+     * @param _id - The id to track the transaction
+     * @param _usernameTo - The username whom received the friend request
+     * @param _usernameFrom - The username whom sent the request
+     * @returns - Whether the request was successfully rejected or not
+     */
+    rejectRequest: (
+        _id: string,
+        _usernameTo: string,
+        _usernameFrom: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

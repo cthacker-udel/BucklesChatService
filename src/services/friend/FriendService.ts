@@ -54,6 +54,23 @@ export class FriendService implements IFriendService {
     };
 
     /** @inheritdoc */
+    public doesFriendshipExist = async (
+        recipient: string,
+        sender: string,
+    ): Promise<boolean> => {
+        const doesFriendshipExist = await this.psqlClient.friendRepo.findOne({
+            where: {
+                [Op.or]: [
+                    { recipient, sender },
+                    { recipient: sender, sender: recipient },
+                ],
+            },
+        });
+
+        return doesFriendshipExist !== null;
+    };
+
+    /** @inheritdoc */
     public sendRequest = async (
         id: string,
         usernameTo: string,
@@ -262,5 +279,32 @@ export class FriendService implements IFriendService {
         });
 
         return new ApiResponse(id, destroyResult > 0);
+    };
+
+    /** @inheritdoc */
+    public removeFriend = async (
+        id: string,
+        recipient: string,
+        sender: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const doesFriendshipExist = await this.doesFriendshipExist(
+            recipient,
+            sender,
+        );
+
+        if (!doesFriendshipExist) {
+            throw new Error("Friendship does not exist");
+        }
+
+        const removeResult = await this.psqlClient.friendRepo.destroy({
+            where: {
+                [Op.or]: [
+                    { recipient, sender },
+                    { recipient: sender, sender: recipient },
+                ],
+            },
+        });
+
+        return new ApiResponse(id, removeResult > 0);
     };
 }

@@ -45,4 +45,13 @@ export interface IFriendController {
      * @returns Whether or not the request was successfully rejected
      */
     rejectRequest: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Removes a friend
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns Whether or not the friend was removed successfully
+     */
+    removeFriend: (_request: Request, _response: Response) => Promise<void>;
 }

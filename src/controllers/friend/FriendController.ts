@@ -15,6 +15,7 @@ import { exceptionToExceptionLog } from "../../helpers/logger/exceptionToExcepti
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { FriendRequestPayload } from "./DTO/FriendRequestPayload";
+import { FriendPayload } from "./DTO/FriendPayload";
 
 export class FriendController
     extends BaseController
@@ -64,6 +65,7 @@ export class FriendController
                 { endpoint: "sendRequest", handler: this.sendRequest },
                 { endpoint: "acceptRequest", handler: this.acceptRequest },
                 { endpoint: "rejectRequest", handler: this.rejectRequest },
+                { endpoint: "removeFriend", handler: this.removeFriend },
             ],
             BucklesRouteType.POST,
         );
@@ -232,6 +234,7 @@ export class FriendController
         }
     };
 
+    /** @inheritdoc */
     public rejectRequest = async (
         request: Request,
         response: Response,
@@ -259,6 +262,50 @@ export class FriendController
             );
             response.status(rejectResult.data === undefined ? 400 : 200);
             response.send(rejectResult);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public removeFriend = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const requestPayload = request.body as FriendPayload;
+
+            if (
+                requestPayload.recipient === undefined ||
+                requestPayload.sender === undefined
+            ) {
+                throw new Error(
+                    "Must supply both usernames to remove a friend",
+                );
+            }
+
+            const { recipient, sender } = requestPayload;
+
+            const result = await this.friendService.removeFriend(
+                id,
+                recipient,
+                sender,
+            );
+            response.status(
+                result.data !== undefined && result.data ? 200 : 400,
+            );
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

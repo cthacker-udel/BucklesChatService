@@ -81,4 +81,30 @@ export interface IFriendService {
         _usernameTo: string,
         _usernameFrom: string,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Removes a friend from the friend list
+     *
+     * @param _id - The id to track the transaction
+     * @param _recipient - The username whom received + accepted the friend request
+     * @param _sender - The username whom sent the friend request
+     * @returns - Whether the user was removed successfully
+     */
+    removeFriend: (
+        _id: string,
+        _recipient: string,
+        _sender: string,
+    ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Checks if a friendship exists in the database
+     *
+     * @param _recipient - The user whom received + accepted the friend request
+     * @param _sender - The user whom sent the friend request
+     * @returns - Whether or not the friendship exists in the database
+     */
+    doesFriendshipExist: (
+        _recipient: string,
+        _sender: string,
+    ) => Promise<boolean>;
 }

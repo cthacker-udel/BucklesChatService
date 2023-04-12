@@ -4,6 +4,8 @@ import { Block } from "../../models/sequelize/Block";
 import { FriendRequest } from "../../models/sequelize/FriendRequest";
 import { Friend } from "../../models/sequelize/Friend";
 import { Sequelize, ModelStatic, DataTypes } from "@sequelize/core";
+import { ChatRoom } from "../../models/sequelize/ChatRoom";
+import { Message } from "../../models/sequelize/Message";
 
 export class PSqlService {
     public sqlize: Sequelize;
@@ -12,6 +14,8 @@ export class PSqlService {
     public blockRepo: ModelStatic<Block>;
     public friendRequestRepo: ModelStatic<FriendRequest>;
     public friendRepo: ModelStatic<Friend>;
+    public chatRoomRepo: ModelStatic<ChatRoom>;
+    public messageRepo: ModelStatic<Message>;
 
     public constructor() {
         this.sqlize = new Sequelize(
@@ -166,6 +170,7 @@ export class PSqlService {
                 sequelize: this.sqlize,
                 tableName: "bucklesblocks",
                 timestamps: true,
+                underscored: true,
             },
         );
         this.friendRepo = Friend.init(
@@ -213,6 +218,7 @@ export class PSqlService {
                 sequelize: this.sqlize,
                 tableName: "bucklesfriends",
                 timestamps: true,
+                underscored: true,
             },
         );
         this.friendRequestRepo = FriendRequest.init(
@@ -255,6 +261,74 @@ export class PSqlService {
             {
                 sequelize: this.sqlize,
                 tableName: "bucklesfriendrequests",
+                timestamps: true,
+                underscored: true,
+            },
+        );
+        this.chatRoomRepo = ChatRoom.init(
+            {
+                createdAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
+                createdBy: {
+                    allowNull: true,
+                    type: DataTypes.STRING(70),
+                },
+                description: {
+                    allowNull: true,
+                    type: DataTypes.STRING(256),
+                },
+                name: {
+                    allowNull: false,
+                    type: DataTypes.STRING(128),
+                },
+                updatedAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
+            },
+            {
+                sequelize: this.sqlize,
+                tableName: "buckleschatrooms",
+                timestamps: true,
+                underscored: true,
+            },
+        );
+        this.messageRepo = Message.init(
+            {
+                chatRoom: {
+                    allowNull: false,
+                    type: DataTypes.STRING(128),
+                },
+                content: {
+                    allowNull: false,
+                    type: DataTypes.STRING(512),
+                },
+                createdAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
+                receiver: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                },
+                sender: {
+                    allowNull: false,
+                    type: DataTypes.STRING(128),
+                },
+                senderProfilePictureUrl: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                },
+                updatedAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
+            },
+            {
+                sequelize: this.sqlize,
+                tableName: "buckleschatrooms",
                 timestamps: true,
                 underscored: true,
             },

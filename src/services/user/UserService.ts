@@ -348,9 +348,19 @@ export class UserService implements IUserService {
             attributes: ["sender"],
             where: { recipient: username },
         });
-        const amalgamatedUsernames = sentFriendUsernames
-            .map((eachFriend) => eachFriend.recipient)
-            .concat(receivedUsernames.map((eachFriend) => eachFriend.sender));
+
+        const amalgamatedUsernames = [
+            ...new Set(
+                sentFriendUsernames
+                    .map((eachFriend) => eachFriend.recipient)
+                    .concat(
+                        receivedUsernames.map(
+                            (eachFriend) => eachFriend.sender,
+                        ),
+                    ),
+            ),
+        ];
+
         const allUsernamesDashboardInformation =
             await this.bulkDashboardInformation(id, amalgamatedUsernames);
         return allUsernamesDashboardInformation;

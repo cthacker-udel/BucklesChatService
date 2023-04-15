@@ -107,4 +107,22 @@ export interface IFriendService {
         _recipient: string,
         _sender: string,
     ) => Promise<boolean>;
+
+    /**
+     * Sends a user a direct message
+     *
+     * @param _id - The id to track the transaction
+     * @param _receiver - The person who is receiving the message
+     * @param _sender - The person who is sending the message
+     * @param _content - The content of the message
+     * @param _senderProfilePictureUrl - The sender's profile picture URL (optional, undefined if using placeholder pfp)
+     * @returns Whether or not the message was sent
+     */
+    sendDirectMessage: (
+        _id: string,
+        _receiver: string,
+        _sender: string,
+        _content: string,
+        _senderProfilePictureUrl?: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

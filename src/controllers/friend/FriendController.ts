@@ -16,6 +16,7 @@ import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { FriendRequestPayload } from "./DTO/FriendRequestPayload";
 import { FriendPayload } from "./DTO/FriendPayload";
+import { DirectMessagePayload } from "./DTO/DirectMessagePayload";
 
 export class FriendController
     extends BaseController
@@ -66,6 +67,10 @@ export class FriendController
                 { endpoint: "acceptRequest", handler: this.acceptRequest },
                 { endpoint: "rejectRequest", handler: this.rejectRequest },
                 { endpoint: "removeFriend", handler: this.removeFriend },
+                {
+                    endpoint: "sendDirectMessage",
+                    handler: this.sendDirectMessage,
+                },
             ],
             BucklesRouteType.POST,
         );
@@ -302,6 +307,56 @@ export class FriendController
                 recipient,
                 sender,
             );
+            response.status(
+                result.data !== undefined && result.data ? 200 : 400,
+            );
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public sendDirectMessage = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const directMessagePayload = request.body as DirectMessagePayload;
+
+            if (
+                directMessagePayload.receiver === undefined ||
+                directMessagePayload.sender === undefined ||
+                directMessagePayload.content === undefined
+            ) {
+                throw new Error(
+                    "Must provide valid fields when sending direct message",
+                );
+            }
+
+            const { content, receiver, sender, senderProfilePicture } =
+                directMessagePayload;
+
+            const result = await this.friendService.sendDirectMessage(
+                id,
+                receiver,
+                sender,
+                content,
+                senderProfilePicture,
+            );
+
             response.status(
                 result.data !== undefined && result.data ? 200 : 400,
             );

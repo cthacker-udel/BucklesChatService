@@ -9,11 +9,11 @@ export class Message extends Model<
     InferAttributes<Message>,
     InferCreationAttributes<Message>
 > {
-    declare chatRoom: string;
+    declare chatRoom?: string;
     declare content: string;
     declare createdAt?: Date;
     declare receiver?: string;
     declare sender: string;
-    declare senderProfilePictureUrl: string;
+    declare senderProfilePictureUrl?: string;
     declare updatedAt?: Date;
 }

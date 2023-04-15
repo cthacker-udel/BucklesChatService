@@ -298,7 +298,7 @@ export class PSqlService {
         this.messageRepo = Message.init(
             {
                 chatRoom: {
-                    allowNull: false,
+                    allowNull: true,
                     type: DataTypes.STRING(128),
                 },
                 content: {
@@ -328,7 +328,7 @@ export class PSqlService {
             },
             {
                 sequelize: this.sqlize,
-                tableName: "buckleschatrooms",
+                tableName: "bucklesmessages",
                 timestamps: true,
                 underscored: true,
             },

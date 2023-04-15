@@ -307,4 +307,31 @@ export class FriendService implements IFriendService {
 
         return new ApiResponse(id, removeResult > 0);
     };
+
+    /** @inheritdoc */
+    public sendDirectMessage = async (
+        id: string,
+        receiver: string,
+        sender: string,
+        content: string,
+        senderProfilePictureUrl?: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const doesFriendshipExist = await this.doesFriendshipExist(
+            receiver,
+            sender,
+        );
+
+        if (!doesFriendshipExist) {
+            throw new Error("Sender is not friends with receiver");
+        }
+
+        const messageResult = await this.psqlClient.messageRepo.create({
+            content,
+            receiver,
+            sender,
+            senderProfilePictureUrl,
+        });
+
+        return new ApiResponse(id, Boolean(messageResult));
+    };
 }

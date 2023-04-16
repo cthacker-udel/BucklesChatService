@@ -1,4 +1,5 @@
 import { FriendRequestDTO } from "../../@types/friend/FriendRequestDTO";
+import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 
 export interface IFriendService {
@@ -125,4 +126,16 @@ export interface IFriendService {
         _content: string,
         _senderProfilePictureUrl?: string,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Fetches all pending direct messages for the user matching the username supplied in the `username` parameter
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username to fetch the pending direct messages from
+     * @returns All the pending direct messages for the user
+     */
+    pendingDirectMessages: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<DirectMessagePayload[]>>;
 }

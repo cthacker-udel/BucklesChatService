@@ -303,7 +303,7 @@ export class PSqlService {
                 },
                 content: {
                     allowNull: false,
-                    type: DataTypes.STRING(512),
+                    type: DataTypes.STRING(280),
                 },
                 createdAt: {
                     allowNull: false,

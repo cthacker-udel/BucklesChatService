@@ -14,4 +14,5 @@ export class Friend extends Model<
     declare accepted?: number;
     declare createdAt?: Date;
     declare updatedAt?: Date;
+    declare id?: number;
 }

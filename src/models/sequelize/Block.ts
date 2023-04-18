@@ -14,4 +14,5 @@ export class Block extends Model<
     declare sender: string;
     declare createdAt?: Date;
     declare updatedAt?: Date;
+    declare id?: number;
 }

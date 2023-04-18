@@ -22,4 +22,5 @@ export class User extends Model<
     declare profileImageRemovalUrl?: string;
     declare createdAt?: Date;
     declare updatedAt?: Date;
+    declare id?: number;
 }

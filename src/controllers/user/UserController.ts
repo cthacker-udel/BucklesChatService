@@ -129,6 +129,11 @@ export class UserController extends BaseController implements IUserController {
         try {
             id = getIdFromRequest(request);
             const username = request.query.username as string;
+
+            if (username === undefined || username.length === 0) {
+                throw new Error("Invalid username supplied");
+            }
+
             const usernameResponse = await this.userService.doesUsernameExist(
                 id,
                 username,

@@ -6,6 +6,7 @@ import { Friend } from "../../models/sequelize/Friend";
 import { Sequelize, ModelStatic, DataTypes } from "@sequelize/core";
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { Message } from "../../models/sequelize/Message";
+import { Thread } from "../../models/sequelize/Thread";
 
 export class PSqlService {
     public sqlize: Sequelize;
@@ -16,6 +17,7 @@ export class PSqlService {
     public friendRepo: ModelStatic<Friend>;
     public chatRoomRepo: ModelStatic<ChatRoom>;
     public messageRepo: ModelStatic<Message>;
+    public threadRepo: ModelStatic<Thread>;
 
     public constructor() {
         this.sqlize = new Sequelize(
@@ -77,6 +79,12 @@ export class PSqlService {
                         isAlphanumeric: true,
                     },
                 },
+                id: {
+                    allowNull: false,
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                },
                 lastName: {
                     allowNull: true,
                     type: DataTypes.STRING(70),
@@ -135,6 +143,12 @@ export class PSqlService {
                     allowNull: false,
                     type: DataTypes.DATE,
                 },
+                id: {
+                    allowNull: false,
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                },
                 reason: {
                     allowNull: true,
                     type: DataTypes.STRING(128),
@@ -187,6 +201,12 @@ export class PSqlService {
                     allowNull: false,
                     type: DataTypes.DATE,
                 },
+                id: {
+                    allowNull: false,
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                },
                 recipient: {
                     allowNull: false,
                     references: {
@@ -230,6 +250,12 @@ export class PSqlService {
                 customMessage: {
                     allowNull: true,
                     type: DataTypes.STRING(128),
+                },
+                id: {
+                    allowNull: false,
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
                 },
                 sender: {
                     allowNull: false,
@@ -279,6 +305,12 @@ export class PSqlService {
                     allowNull: true,
                     type: DataTypes.STRING(256),
                 },
+                id: {
+                    allowNull: false,
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                },
                 name: {
                     allowNull: false,
                     type: DataTypes.STRING(128),
@@ -309,6 +341,12 @@ export class PSqlService {
                     allowNull: false,
                     type: DataTypes.DATE,
                 },
+                id: {
+                    allowNull: false,
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                },
                 receiver: {
                     allowNull: true,
                     type: DataTypes.STRING(128),
@@ -329,6 +367,46 @@ export class PSqlService {
             {
                 sequelize: this.sqlize,
                 tableName: "bucklesmessages",
+                timestamps: true,
+                underscored: true,
+            },
+        );
+        this.threadRepo = Thread.init(
+            {
+                createdAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
+                creator: {
+                    allowNull: false,
+                    type: DataTypes.STRING(128),
+                },
+                creatorProfilePictureUrl: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                },
+                id: {
+                    allowNull: false,
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                },
+                receiver: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                },
+                receiverProfilePictureUrl: {
+                    allowNull: true,
+                    type: DataTypes.STRING(128),
+                },
+                updatedAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
+            },
+            {
+                sequelize: this.sqlize,
+                tableName: "bucklesthreads",
                 timestamps: true,
                 underscored: true,
             },

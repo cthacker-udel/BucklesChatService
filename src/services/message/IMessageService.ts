@@ -18,13 +18,13 @@ export interface IMessageService {
      * @param _creator - The creator of the thread
      * @param _receiver - The receiver of the thread
      * @param _initialMessageId - The id of the initial message to start the thread
-     * @returns Whether or not the thread was completed successfully
+     * @returns The id of the thread that was created
      */
     createThread: (
         _id: string,
         _creator: string,
         _receiver: string,
-    ) => Promise<ApiResponse<boolean>>;
+    ) => Promise<ApiResponse<number>>;
 
     /**
      * Gets all threads that fall under the user

@@ -36,13 +36,13 @@ export class MessageService implements IMessageService {
         id: string,
         creator: string,
         receiver: string,
-    ): Promise<ApiResponse<boolean>> => {
+    ): Promise<ApiResponse<number>> => {
         const doesThreadAlreadyExist = await this.doesThreadExist(
             creator,
             receiver,
         );
         if (doesThreadAlreadyExist) {
-            return new ApiResponse(id, false);
+            return new ApiResponse(id, -1);
         }
 
         const createResult = await this.psqlClient.threadRepo.create({
@@ -50,7 +50,7 @@ export class MessageService implements IMessageService {
             receiver,
         });
 
-        return new ApiResponse(id, createResult !== null);
+        return new ApiResponse(id, createResult.dataValues.id);
     };
 
     /** @inheritdoc */

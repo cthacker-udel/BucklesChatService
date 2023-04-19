@@ -17,4 +17,5 @@ export class Message extends Model<
     declare sender: string;
     declare senderProfilePictureUrl?: string;
     declare updatedAt?: Date;
+    declare thread?: number;
 }

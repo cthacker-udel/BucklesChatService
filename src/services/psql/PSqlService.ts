@@ -359,6 +359,10 @@ export class PSqlService {
                     allowNull: true,
                     type: DataTypes.STRING(128),
                 },
+                thread: {
+                    allowNull: true,
+                    type: DataTypes.INTEGER,
+                },
                 updatedAt: {
                     allowNull: false,
                     type: DataTypes.DATE,
@@ -381,10 +385,6 @@ export class PSqlService {
                     allowNull: false,
                     type: DataTypes.STRING(128),
                 },
-                creatorProfilePictureUrl: {
-                    allowNull: true,
-                    type: DataTypes.STRING(128),
-                },
                 id: {
                     allowNull: false,
                     autoIncrement: true,
@@ -392,10 +392,6 @@ export class PSqlService {
                     type: DataTypes.INTEGER,
                 },
                 receiver: {
-                    allowNull: true,
-                    type: DataTypes.STRING(128),
-                },
-                receiverProfilePictureUrl: {
                     allowNull: true,
                     type: DataTypes.STRING(128),
                 },

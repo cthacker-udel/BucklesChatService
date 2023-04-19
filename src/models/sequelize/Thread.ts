@@ -14,6 +14,4 @@ export class Thread extends Model<
     declare updatedAt?: Date;
     declare creator: string;
     declare receiver: string;
-    declare creatorProfilePictureUrl?: string;
-    declare receiverProfilePictureUrl?: string;
 }

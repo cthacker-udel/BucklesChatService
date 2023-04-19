@@ -66,6 +66,18 @@ export class MessageController
             ],
             BucklesRouteType.POST,
         );
+
+        super.setStatusFunction(() => {
+            if (!this.psqlClient.connected) {
+                throw new Error("Psql client is not connected");
+            }
+            if (this.mongoService === undefined) {
+                throw new Error("Mongo client is not connected");
+            }
+            if (this.loggerService === undefined) {
+                throw new Error("Logger is not connected");
+            }
+        });
     }
 
     /** @inheritdoc */

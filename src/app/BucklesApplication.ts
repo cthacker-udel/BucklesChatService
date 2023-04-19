@@ -8,12 +8,20 @@ import morgan from "morgan";
 import { PSqlService } from "../services/psql/PSqlService";
 import { RedisService } from "../services/redis/RedisService";
 import { FriendController } from "../controllers/friend/FriendController";
+import { MessageController } from "../controllers/message/MessageController";
+import { createServer } from "http";
+import { SocketService } from "../services/socket/SocketService";
 
 export class BucklesApplication implements IBucklesApplication {
     /**
      * The application instance, which houses and handles all CRUD requests
      */
     public app: core.Express;
+
+    /**
+     * The websocket server
+     */
+    public websocketServer: SocketService;
 
     /**
      *  No-arg constructor that initializes the local backend instance to a new express
@@ -40,11 +48,25 @@ export class BucklesApplication implements IBucklesApplication {
             redisService,
         );
 
+        const messageController = new MessageController(
+            mongoService,
+            psqlService,
+        );
+
+        const appServer = createServer(this.app);
+        appServer.listen(process.env.WEBSOCKET_PORT, () => {
+            console.log(
+                `Websocket listening on port ${process.env.WEBSOCKET_PORT}`,
+            );
+        });
+
+        this.websocketServer = new SocketService(appServer);
         this.app.use(morgan("dev"));
         this.app.use(express.json());
         this.app.use(loggerController.generateRouter());
         this.app.use(userController.generateRouter());
         this.app.use(friendController.generateRouter());
+        this.app.use(messageController.generateRouter());
         this.app.listen(process.env.PORT, () => {
             console.log(`Listening on port ${process.env.PORT}`);
         });

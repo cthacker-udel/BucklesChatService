@@ -348,7 +348,12 @@ export class FriendService implements IFriendService {
             where: { receiver: username },
         });
 
-        const convertedMessages = pendingMessages.map(
+        const filteredPendingMessages = pendingMessages.filter(
+            (eachPendingMessage) =>
+                eachPendingMessage.dataValues.thread === null,
+        );
+
+        const convertedMessages = filteredPendingMessages.map(
             (eachResult: Message) =>
                 eachResult.dataValues as DirectMessagePayload,
         );

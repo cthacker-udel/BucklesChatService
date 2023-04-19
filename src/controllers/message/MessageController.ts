@@ -14,6 +14,7 @@ import { getIdFromRequest } from "../../helpers/api/getIdFromRequest";
 import { CreateThreadPayload } from "./threadDTO/CreateThreadPayload";
 import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
 import { RemoveThreadPayload } from "./threadDTO/RemoveThreadPayload";
+import { AddMessageToThreadPayload } from "./threadDTO/AddMessageToThreadPayload";
 
 export class MessageController
     extends BaseController
@@ -56,7 +57,13 @@ export class MessageController
             BucklesRouteType.GET,
         );
         super.addRoutes(
-            [{ endpoint: "thread/create", handler: this.createThread }],
+            [
+                { endpoint: "thread/create", handler: this.createThread },
+                {
+                    endpoint: "thread/addMessage",
+                    handler: this.addMessageToThread,
+                },
+            ],
             BucklesRouteType.POST,
         );
     }
@@ -181,6 +188,48 @@ export class MessageController
             const result = await this.messageService.removeThread(id, threadId);
             response.status(
                 result?.data !== undefined && result.data ? 200 : 400,
+            );
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public addMessageToThread = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const body = request.body as AddMessageToThreadPayload;
+
+            if (body.messageId === undefined || body.threadId === undefined) {
+                throw new Error(
+                    "Must supply message id and thread id when adding a message to a thread",
+                );
+            }
+
+            const { messageId, threadId } = body;
+
+            const result = await this.messageService.addMessageToThread(
+                id,
+                messageId,
+                threadId,
+            );
+
+            response.status(
+                result.data !== undefined && result.data ? 200 : 400,
             );
             response.send(result);
         } catch (error: unknown) {

@@ -94,4 +94,34 @@ export class MessageService implements IMessageService {
                 threadRemoval > 0,
         );
     };
+
+    /** @inheritdoc */
+    public addMessageToThread = async (
+        id: string,
+        messageId: number,
+        threadId: number,
+    ): Promise<ApiResponse<boolean>> => {
+        const doesThreadExist = await this.psqlClient.threadRepo.findOne({
+            where: { id: threadId },
+        });
+
+        if (doesThreadExist === null) {
+            return new ApiResponse(id, false);
+        }
+
+        const doesMessageExist = await this.psqlClient.messageRepo.findOne({
+            where: { id: messageId },
+        });
+
+        if (doesMessageExist === null) {
+            return new ApiResponse(id, false);
+        }
+
+        const [updated] = await this.psqlClient.messageRepo.update(
+            { thread: threadId },
+            { where: { id: messageId } },
+        );
+
+        return new ApiResponse(id, updated > 0);
+    };
 }

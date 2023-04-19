@@ -49,4 +49,18 @@ export interface IMessageService {
         _id: string,
         _threadId: number,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Adds a message to an existing thread
+     *
+     * @param _id - The id to track the transaction
+     * @param _messageId - The id of the message to add
+     * @param _threadId - The id of the thread to add the message to
+     * @returns Whether the thread was deleted
+     */
+    addMessageToThread: (
+        _id: string,
+        _messageId: number,
+        _threadId: number,
+    ) => Promise<ApiResponse<boolean>>;
 }

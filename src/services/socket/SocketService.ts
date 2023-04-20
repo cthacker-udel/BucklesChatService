@@ -22,8 +22,5 @@ export class SocketService {
                 origin: process.env.WEBSOCKET_ORIGIN,
             },
         });
-        this.server.on("connection", () => {
-            console.log("a person connected");
-        });
     }
 }

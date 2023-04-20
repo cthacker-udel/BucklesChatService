@@ -1,4 +1,5 @@
 import { ThreadMessage } from "../../@types/message/ThreadMessage";
+import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { Thread } from "../../models/sequelize/Thread";
 
@@ -76,4 +77,16 @@ export interface IMessageService {
         _id: string,
         _threadId: string,
     ) => Promise<ApiResponse<ThreadMessage[]>>;
+
+    /**
+     * Fetches all threads and all the messages that come with the thread as well
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username used to fetch all the threads, and get their respective messages
+     * @returns All the threads with all their messages
+     */
+    getThreadsWithMessages: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<ThreadWithMessages[]>>;
 }

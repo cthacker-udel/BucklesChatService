@@ -56,8 +56,12 @@ export class MessageController
             [
                 { endpoint: "thread/getAll", handler: this.getThreads },
                 {
-                    endpoint: "thread/getAll/messages",
+                    endpoint: "thread/messages",
                     handler: this.getThreadMessages,
+                },
+                {
+                    endpoint: "thread/getAll/messages",
+                    handler: this.getThreadsWithMessages,
                 },
             ],
             BucklesRouteType.GET,
@@ -288,6 +292,40 @@ export class MessageController
 
             response.status(200);
             response.send(threadMessages);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public getThreadsWithMessages = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const username = request.query.username as string;
+
+            if (username === undefined || username.length === 0) {
+                throw new Error("Must supply username to fetch thread data");
+            }
+
+            const threadsWithMessages =
+                await this.messageService.getThreadsWithMessages(id, username);
+
+            response.status(200);
+            response.send(threadsWithMessages);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

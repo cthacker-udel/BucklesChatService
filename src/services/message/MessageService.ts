@@ -7,6 +7,8 @@ import { PSqlService } from "../psql/PSqlService";
 import { IMessageService } from "./IMessageService";
 import { Message } from "../../models/sequelize/Message";
 import { ThreadMessage } from "../../@types/message/ThreadMessage";
+import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
+import { User } from "../../models/sequelize/User";
 
 export class MessageService implements IMessageService {
     /**
@@ -181,5 +183,76 @@ export class MessageService implements IMessageService {
         );
 
         return new ApiResponse(id, convertedThreadMessages);
+    };
+
+    /** @inheritdoc */
+    public getThreadsWithMessages = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<ThreadWithMessages[]>> => {
+        const foundThreads: ApiResponse<Thread[]> = await this.getThreads(
+            id,
+            username,
+        );
+
+        const threadMessages: Promise<ApiResponse<ThreadMessage[]>>[] = [];
+
+        const creatorProfilePictureUrls: Promise<User | null>[] = [];
+        const receiverProfilePictureUrls: Promise<User | null>[] = [];
+
+        const { data } = foundThreads;
+
+        if (data === undefined) {
+            return new ApiResponse(id, [] as ThreadWithMessages[]);
+        }
+
+        for (const eachFoundThread of data) {
+            if (eachFoundThread.dataValues.id !== undefined) {
+                creatorProfilePictureUrls.push(
+                    this.psqlClient.userRepo.findOne({
+                        attributes: [["profile_image_url", "profileImageUrl"]],
+                        where: { username: eachFoundThread.creator },
+                    }),
+                );
+                receiverProfilePictureUrls.push(
+                    this.psqlClient.userRepo.findOne({
+                        attributes: [["profile_image_url", "profileImageUrl"]],
+                        where: { username: eachFoundThread.receiver },
+                    }),
+                );
+                threadMessages.push(
+                    this.getThreadMessages(
+                        id,
+                        eachFoundThread.dataValues.id.toString(),
+                    ),
+                );
+            }
+        }
+
+        const foundMessages = await Promise.all(threadMessages);
+        const creatorProfilePictures = await Promise.all(
+            creatorProfilePictureUrls,
+        );
+        const receiverProfilePictures = await Promise.all(
+            receiverProfilePictureUrls,
+        );
+
+        const convertedMessages: ThreadWithMessages[] = foundMessages.map(
+            (eachFoundMessage: ApiResponse<ThreadMessage[]>, index: number) => {
+                const { data: foundMessages } = eachFoundMessage;
+                return {
+                    creatorProfilePictureUrl:
+                        creatorProfilePictures[index]?.dataValues
+                            .profileImageUrl ?? "",
+                    messages: foundMessages as unknown as ThreadMessage[],
+                    receiverProfilePictureUrl:
+                        receiverProfilePictures[index]?.dataValues
+                            .profileImageUrl ?? "",
+                    threadId: data[index].id as unknown as number,
+                };
+            },
+        );
+
+        return new ApiResponse(id, convertedMessages);
     };
 }

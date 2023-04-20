@@ -1,3 +1,4 @@
+import { ThreadMessage } from "../../@types/message/ThreadMessage";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { Thread } from "../../models/sequelize/Thread";
 
@@ -63,4 +64,16 @@ export interface IMessageService {
         _messageId: number,
         _threadId: number,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Fetches all the messages belonging to the thread
+     *
+     * @param _id - The id to track the transaction
+     * @param _threadId - The id of the thread to pull the messages from
+     * @returns All the messages belonging to the thread
+     */
+    getThreadMessages: (
+        _id: string,
+        _threadId: string,
+    ) => Promise<ApiResponse<ThreadMessage[]>>;
 }

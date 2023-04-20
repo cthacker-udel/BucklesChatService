@@ -53,7 +53,13 @@ export class MessageController
         this.loggerService = new LoggerService(_mongoService);
         this.messageService = new MessageService(this.psqlClient);
         super.addRoutes(
-            [{ endpoint: "thread/getAll", handler: this.getThreads }],
+            [
+                { endpoint: "thread/getAll", handler: this.getThreads },
+                {
+                    endpoint: "thread/getAll/messages",
+                    handler: this.getThreadMessages,
+                },
+            ],
             BucklesRouteType.GET,
         );
         super.addRoutes(
@@ -244,6 +250,44 @@ export class MessageController
                 result.data !== undefined && result.data ? 200 : 400,
             );
             response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public getThreadMessages = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const threadId = request.query.threadId as string;
+
+            if (threadId === undefined) {
+                throw new Error(
+                    "Thread id must be supplied to fetch messages of thread",
+                );
+            }
+
+            const threadMessages = await this.messageService.getThreadMessages(
+                id,
+                threadId,
+            );
+
+            response.status(200);
+            response.send(threadMessages);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

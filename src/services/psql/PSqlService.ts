@@ -363,6 +363,10 @@ export class PSqlService {
                     allowNull: true,
                     type: DataTypes.INTEGER,
                 },
+                threadOrder: {
+                    allowNull: true,
+                    type: DataTypes.INTEGER,
+                },
                 updatedAt: {
                     allowNull: false,
                     type: DataTypes.DATE,

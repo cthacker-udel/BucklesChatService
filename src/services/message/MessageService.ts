@@ -1,9 +1,12 @@
+/* eslint-disable implicit-arrow-linebreak -- disabled */
+
 import { Op } from "@sequelize/core";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { Thread } from "../../models/sequelize/Thread";
 import { PSqlService } from "../psql/PSqlService";
 import { IMessageService } from "./IMessageService";
 import { Message } from "../../models/sequelize/Message";
+import { ThreadMessage } from "../../@types/message/ThreadMessage";
 
 export class MessageService implements IMessageService {
     /**
@@ -101,6 +104,9 @@ export class MessageService implements IMessageService {
         messageId: number,
         threadId: number,
     ): Promise<ApiResponse<boolean>> => {
+        /**
+         * Checks if the thread exists
+         */
         const doesThreadExist = await this.psqlClient.threadRepo.findOne({
             where: { id: threadId },
         });
@@ -109,19 +115,71 @@ export class MessageService implements IMessageService {
             return new ApiResponse(id, false);
         }
 
+        /**
+         * Gets all messages belonging to the thread currently
+         */
+        const allThreadMessages = await this.psqlClient.messageRepo.findAll({
+            where: { thread: threadId },
+        });
+
+        /**
+         * Calculates the new thread order that this message will be assigned to
+         */
+        const newThreadOrder =
+            Math.max(
+                ...allThreadMessages.map(
+                    (eachMessage) => eachMessage.dataValues.threadOrder ?? 0,
+                ),
+            ) + 1;
+
+        /**
+         * Checks if the message exists
+         */
         const doesMessageExist = await this.psqlClient.messageRepo.findOne({
             where: { id: messageId },
         });
 
+        /**
+         * If null then does not exist
+         */
         if (doesMessageExist === null) {
             return new ApiResponse(id, false);
         }
 
+        /**
+         * Update the message with new threadId and new threadOrder
+         */
         const [updated] = await this.psqlClient.messageRepo.update(
-            { thread: threadId },
+            { thread: threadId, threadOrder: newThreadOrder },
             { where: { id: messageId } },
         );
 
         return new ApiResponse(id, updated > 0);
+    };
+
+    /** @inheritdoc */
+    public getThreadMessages = async (
+        id: string,
+        threadId: string,
+    ): Promise<ApiResponse<ThreadMessage[]>> => {
+        const doesThreadExist = await this.psqlClient.threadRepo.findOne({
+            where: { id: threadId },
+        });
+
+        if (doesThreadExist === null) {
+            return new ApiResponse(id, [] as ThreadMessage[]);
+        }
+
+        const allThreadMessages = await this.psqlClient.messageRepo.findAll({
+            order: [["thread_order", "DESC"]],
+            where: { thread: threadId },
+        });
+
+        const convertedThreadMessages = allThreadMessages.map(
+            (eachThreadMessage: Message) =>
+                eachThreadMessage.dataValues as ThreadMessage,
+        );
+
+        return new ApiResponse(id, convertedThreadMessages);
     };
 }

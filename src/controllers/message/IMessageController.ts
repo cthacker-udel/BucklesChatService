@@ -44,4 +44,16 @@ export interface IMessageController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * Gets all the threads messages, ordering them by thread order
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns All thread messages ordered by thread order
+     */
+    getThreadMessages: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
 }

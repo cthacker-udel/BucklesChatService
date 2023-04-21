@@ -1,5 +1,6 @@
 import { ThreadMessage } from "../../@types/message/ThreadMessage";
 import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
+import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { Thread } from "../../models/sequelize/Thread";
 
@@ -89,4 +90,16 @@ export interface IMessageService {
         _id: string,
         _username: string,
     ) => Promise<ApiResponse<ThreadWithMessages[]>>;
+
+    /**
+     * Adds a message into the database
+     *
+     * @param _id - The id to track the transaction
+     * @param _payload - The message contents we are adding into the database
+     * @returns The id of the added message, or -1 if it was not added successfully
+     */
+    addMessage: (
+        _id: string,
+        _payload: DirectMessagePayload,
+    ) => Promise<ApiResponse<number>>;
 }

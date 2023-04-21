@@ -1,8 +1,10 @@
 import type { ThreadMessage } from "./ThreadMessage";
 
 export type ThreadWithMessages = {
-    creatorProfilePictureUrl: string;
+    creator?: string;
+    creatorProfilePictureUrl?: string;
     messages: ThreadMessage[];
     threadId: number;
-    receiverProfilePictureUrl: string;
+    receiverProfilePictureUrl?: string;
+    receiver?: string;
 };

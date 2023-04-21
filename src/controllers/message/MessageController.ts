@@ -15,6 +15,7 @@ import { CreateThreadPayload } from "./threadDTO/CreateThreadPayload";
 import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
 import { RemoveThreadPayload } from "./threadDTO/RemoveThreadPayload";
 import { AddMessageToThreadPayload } from "./threadDTO/AddMessageToThreadPayload";
+import { DirectMessagePayload } from "../friend/DTO/DirectMessagePayload";
 
 export class MessageController
     extends BaseController
@@ -73,6 +74,7 @@ export class MessageController
                     endpoint: "thread/addMessage",
                     handler: this.addMessageToThread,
                 },
+                { endpoint: "add", handler: this.addMessage },
             ],
             BucklesRouteType.POST,
         );
@@ -326,6 +328,45 @@ export class MessageController
 
             response.status(200);
             response.send(threadsWithMessages);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public addMessage = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const payload = request.body as DirectMessagePayload;
+
+            if (
+                payload.content === undefined ||
+                payload.receiver === undefined ||
+                payload.sender === undefined
+            ) {
+                throw new Error(
+                    "Must send necessary credentials to add a message",
+                );
+            }
+
+            const result = await this.messageService.addMessage(id, payload);
+            response.status(
+                result?.data !== undefined && result.data >= 0 ? 200 : 400,
+            );
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

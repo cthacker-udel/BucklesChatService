@@ -9,6 +9,7 @@ import { Message } from "../../models/sequelize/Message";
 import { ThreadMessage } from "../../@types/message/ThreadMessage";
 import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
 import { User } from "../../models/sequelize/User";
+import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
 
 export class MessageService implements IMessageService {
     /**
@@ -173,7 +174,7 @@ export class MessageService implements IMessageService {
         }
 
         const allThreadMessages = await this.psqlClient.messageRepo.findAll({
-            order: [["thread_order", "DESC"]],
+            order: [["thread_order", "ASC"]],
             where: { thread: threadId },
         });
 
@@ -199,6 +200,8 @@ export class MessageService implements IMessageService {
 
         const creatorProfilePictureUrls: Promise<User | null>[] = [];
         const receiverProfilePictureUrls: Promise<User | null>[] = [];
+        const creatorUsernames: string[] = [];
+        const receiverUsernames: string[] = [];
 
         const { data } = foundThreads;
 
@@ -226,6 +229,8 @@ export class MessageService implements IMessageService {
                         eachFoundThread.dataValues.id.toString(),
                     ),
                 );
+                creatorUsernames.push(eachFoundThread.creator);
+                receiverUsernames.push(eachFoundThread.receiver);
             }
         }
 
@@ -241,10 +246,12 @@ export class MessageService implements IMessageService {
             (eachFoundMessage: ApiResponse<ThreadMessage[]>, index: number) => {
                 const { data: foundMessages } = eachFoundMessage;
                 return {
+                    creator: creatorUsernames[index],
                     creatorProfilePictureUrl:
                         creatorProfilePictures[index]?.dataValues
                             .profileImageUrl ?? "",
                     messages: foundMessages as unknown as ThreadMessage[],
+                    receiver: receiverUsernames[index],
                     receiverProfilePictureUrl:
                         receiverProfilePictures[index]?.dataValues
                             .profileImageUrl ?? "",
@@ -254,5 +261,21 @@ export class MessageService implements IMessageService {
         );
 
         return new ApiResponse(id, convertedMessages);
+    };
+
+    /** @inheritdoc */
+    public addMessage = async (
+        id: string,
+        payload: DirectMessagePayload,
+    ): Promise<ApiResponse<number>> => {
+        const addMessageResult = await this.psqlClient.messageRepo.create({
+            ...payload,
+        });
+
+        if (addMessageResult === null) {
+            return new ApiResponse(id, -1);
+        }
+
+        return new ApiResponse(id, addMessageResult.id);
     };
 }

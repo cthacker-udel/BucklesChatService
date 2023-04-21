@@ -11,6 +11,15 @@ export interface IMessageController {
     createThread: (_request: Request, _response: Response) => Promise<void>;
 
     /**
+     * Creates a new message in the database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns The message id of the created message
+     */
+    addMessage: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
      * Gets all threads belonging to the user
      *
      * @param _request - The client request

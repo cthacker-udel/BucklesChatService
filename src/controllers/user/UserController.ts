@@ -271,7 +271,7 @@ export class UserController extends BaseController implements IUserController {
             const editResponse = await this.userService.editUser(
                 id,
                 username,
-                convertPartialUserToPsqlUser(rest),
+                rest,
             );
 
             response.status(200);

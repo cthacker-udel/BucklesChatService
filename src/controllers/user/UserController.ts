@@ -50,7 +50,7 @@ export class UserController extends BaseController implements IUserController {
         _psqlService: PSqlService,
         _redisService: RedisService,
     ) {
-        super(process.env.USER_TABLE, "user");
+        super(undefined, "user");
         this.loggerService = new LoggerService(_mongoService);
         this.mongoService = _mongoService;
         this.psqlClient = _psqlService;

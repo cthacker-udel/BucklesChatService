@@ -94,7 +94,7 @@ export class MessageService implements IMessageService {
         const threadRemoval = await this.psqlClient.threadRepo.destroy({
             where: { id: threadId },
         });
-        return new ApiResponse(
+        return new ApiResponse<boolean>(
             id,
             result.every((eachDeletionResult) => eachDeletionResult > 0) &&
                 threadRemoval > 0,
@@ -115,7 +115,7 @@ export class MessageService implements IMessageService {
         });
 
         if (doesThreadExist === null) {
-            return new ApiResponse(id, false);
+            return new ApiResponse<boolean>(id, false);
         }
 
         /**
@@ -146,7 +146,7 @@ export class MessageService implements IMessageService {
          * If null then does not exist
          */
         if (doesMessageExist === null) {
-            return new ApiResponse(id, false);
+            return new ApiResponse<boolean>(id, false);
         }
 
         /**
@@ -157,7 +157,7 @@ export class MessageService implements IMessageService {
             { where: { id: messageId } },
         );
 
-        return new ApiResponse(id, updated > 0);
+        return new ApiResponse<boolean>(id, updated > 0);
     };
 
     /** @inheritdoc */

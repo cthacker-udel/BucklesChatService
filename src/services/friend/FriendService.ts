@@ -82,7 +82,7 @@ export class FriendService implements IFriendService {
         customMessage?: string,
     ): Promise<ApiResponse<boolean>> => {
         if (usernameTo === undefined || usernameFrom === undefined) {
-            return new ApiResponse(id, false);
+            return new ApiResponse<boolean>(id, false);
         }
 
         const doesExist = await this.doesFriendRequestExist(
@@ -91,7 +91,7 @@ export class FriendService implements IFriendService {
         );
 
         if (doesExist) {
-            return new ApiResponse(id, false);
+            return new ApiResponse<boolean>(id, false);
         }
 
         const insertionResult = await this.psqlClient.friendRequestRepo.create({
@@ -100,7 +100,7 @@ export class FriendService implements IFriendService {
             username: usernameTo,
         });
 
-        return new ApiResponse(id, insertionResult !== null);
+        return new ApiResponse<boolean>(id, insertionResult !== null);
     };
 
     /** @inheritdoc */
@@ -243,7 +243,7 @@ export class FriendService implements IFriendService {
         );
 
         if (!doesFriendRequestExist) {
-            return new ApiResponse(id, false);
+            return new ApiResponse<boolean>(id, false);
         }
 
         const removeRequest = await this.psqlClient.friendRequestRepo.destroy({
@@ -251,7 +251,7 @@ export class FriendService implements IFriendService {
         });
 
         if (removeRequest === 0) {
-            return new ApiResponse(id, false);
+            return new ApiResponse<boolean>(id, false);
         }
 
         const addAsFriend = await this.psqlClient.friendRepo.create({
@@ -260,7 +260,7 @@ export class FriendService implements IFriendService {
             sender: usernameFrom,
         });
 
-        return new ApiResponse(id, Boolean(addAsFriend));
+        return new ApiResponse<boolean>(id, Boolean(addAsFriend));
     };
 
     /** @inheritdoc */
@@ -275,14 +275,14 @@ export class FriendService implements IFriendService {
         );
 
         if (!doesFriendRequestExist) {
-            return new ApiResponse(id, false);
+            return new ApiResponse<boolean>(id, false);
         }
 
         const destroyResult = await this.psqlClient.friendRequestRepo.destroy({
             where: { sender: usernameFrom, username: usernameTo },
         });
 
-        return new ApiResponse(id, destroyResult > 0);
+        return new ApiResponse<boolean>(id, destroyResult > 0);
     };
 
     /** @inheritdoc */
@@ -309,7 +309,7 @@ export class FriendService implements IFriendService {
             },
         });
 
-        return new ApiResponse(id, removeResult > 0);
+        return new ApiResponse<boolean>(id, removeResult > 0);
     };
 
     /** @inheritdoc */
@@ -334,7 +334,7 @@ export class FriendService implements IFriendService {
             sender,
         });
 
-        return new ApiResponse(id, Boolean(messageResult));
+        return new ApiResponse<boolean>(id, Boolean(messageResult));
     };
 
     /** @inheritdoc */

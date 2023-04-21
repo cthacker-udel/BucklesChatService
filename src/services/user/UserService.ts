@@ -97,7 +97,7 @@ export class UserService implements IUserService {
     ): Promise<ApiResponse<boolean>> => {
         const { username, password } = user;
         if (username === undefined || password === undefined) {
-            return new ApiResponse(
+            return new ApiResponse<boolean>(
                 id,
                 false,
                 new ApiErrorInfo(id).initException(
@@ -114,7 +114,7 @@ export class UserService implements IUserService {
             foundEncryptedPasswordSalt.passwordSalt === undefined ||
             foundEncryptedPasswordSalt.password === undefined
         ) {
-            return new ApiResponse(
+            return new ApiResponse<boolean>(
                 id,
                 false,
                 new ApiErrorInfo(id).initException(
@@ -171,7 +171,7 @@ export class UserService implements IUserService {
             encryptionData.salt,
         );
 
-        return new ApiResponse(id, createUserResult.data ?? false);
+        return new ApiResponse<boolean>(id, createUserResult.data ?? false);
     };
 
     /** @inheritdoc */
@@ -193,7 +193,7 @@ export class UserService implements IUserService {
             throw new Error("Unable to remove user");
         }
 
-        return new ApiResponse(id, removalResult > 0);
+        return new ApiResponse<boolean>(id, removalResult > 0);
     };
 
     /** @inheritdoc */
@@ -213,12 +213,12 @@ export class UserService implements IUserService {
         });
 
         if (request === undefined) {
-            return new ApiResponse(id, false);
+            return new ApiResponse<boolean>(id, false);
         }
 
         const numberAffected = request[0];
 
-        return new ApiResponse(id, numberAffected > 0);
+        return new ApiResponse<boolean>(id, numberAffected > 0);
     };
 
     /** @inheritdoc */

@@ -187,6 +187,19 @@ export class MessageService implements IMessageService {
     };
 
     /** @inheritdoc */
+    public findSenderProfilePictureUrl = async (
+        id: string,
+        username: string,
+    ): Promise<string | undefined> => {
+        const result = await this.psqlClient.userRepo.findOne({
+            attributes: [["profile_image_url", "profileImageUrl"]],
+            where: { username },
+        });
+
+        return result?.profileImageUrl ?? undefined;
+    };
+
+    /** @inheritdoc */
     public getThreadsWithMessages = async (
         id: string,
         username: string,
@@ -242,6 +255,30 @@ export class MessageService implements IMessageService {
             receiverProfilePictureUrls,
         );
 
+        const messagesProfilePictureUrls: Promise<string | undefined>[] = [];
+
+        foundMessages.forEach(
+            (eachFoundMessage: ApiResponse<ThreadMessage[]>) => {
+                const { data: threadMessages } = eachFoundMessage;
+                if (threadMessages !== undefined) {
+                    threadMessages?.forEach((eachMessage: ThreadMessage) => {
+                        messagesProfilePictureUrls.push(
+                            this.findSenderProfilePictureUrl(
+                                id,
+                                eachMessage.sender,
+                            ),
+                        );
+                    });
+                }
+            },
+        );
+
+        const allMessagesSenderPfps = await Promise.all(
+            messagesProfilePictureUrls,
+        );
+
+        let idx = 0;
+
         const convertedMessages: ThreadWithMessages[] = foundMessages.map(
             (eachFoundMessage: ApiResponse<ThreadMessage[]>, index: number) => {
                 const { data: foundMessages } = eachFoundMessage;
@@ -250,7 +287,17 @@ export class MessageService implements IMessageService {
                     creatorProfilePictureUrl:
                         creatorProfilePictures[index]?.dataValues
                             .profileImageUrl ?? "",
-                    messages: foundMessages as unknown as ThreadMessage[],
+                    messages: [
+                        ...(foundMessages as unknown as ThreadMessage[]),
+                    ].map((eachFoundMessage: ThreadMessage) => {
+                        const currIndex = idx;
+                        idx += 1;
+                        return {
+                            ...eachFoundMessage,
+                            senderProfilePictureUrl:
+                                allMessagesSenderPfps[currIndex],
+                        };
+                    }),
                     receiver: receiverUsernames[index],
                     receiverProfilePictureUrl:
                         receiverProfilePictures[index]?.dataValues

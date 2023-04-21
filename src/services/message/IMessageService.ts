@@ -114,4 +114,16 @@ export interface IMessageService {
         _id: string,
         _username: string,
     ) => Promise<ApiResponse<DirectMessagePayload[]>>;
+
+    /**
+     * Finds the sender's profile picture url
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username used to lookup the sender profile picture url
+     * @returns The profile picture url of the sender
+     */
+    findSenderProfilePictureUrl: (
+        _id: string,
+        _username: string,
+    ) => Promise<string | undefined>;
 }

@@ -278,4 +278,26 @@ export class MessageService implements IMessageService {
 
         return new ApiResponse(id, addMessageResult.id);
     };
+
+    /** @inheritdoc */
+    public pendingDirectMessages = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<DirectMessagePayload[]>> => {
+        const pendingMessages = await this.psqlClient.messageRepo.findAll({
+            where: { receiver: username },
+        });
+
+        const filteredPendingMessages = pendingMessages.filter(
+            (eachPendingMessage) =>
+                eachPendingMessage.dataValues.thread === null,
+        );
+
+        const convertedMessages = filteredPendingMessages.map(
+            (eachResult: Message) =>
+                eachResult.dataValues as DirectMessagePayload,
+        );
+
+        return new ApiResponse(id, convertedMessages);
+    };
 }

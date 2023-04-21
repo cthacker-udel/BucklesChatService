@@ -66,16 +66,4 @@ export interface IFriendController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
-
-    /**
-     * Fetches all pending direct messages for the user supplied
-     *
-     * @param _request - The client request
-     * @param _response - The client response
-     * @returns All the pending direct messages for the supplied user
-     */
-    pendingDirectMessages: (
-        _request: Request,
-        _response: Response,
-    ) => Promise<void>;
 }

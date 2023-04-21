@@ -14,7 +14,6 @@ import { DbUser } from "../../@types/user/DbUser";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
-import { convertPartialUserToPsqlUser } from "../../helpers/api/convertPartialUserToPsqlUser";
 import { RedisService } from "../../services/redis/RedisService";
 
 export class UserController extends BaseController implements IUserController {

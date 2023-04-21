@@ -102,4 +102,16 @@ export interface IMessageService {
         _id: string,
         _payload: DirectMessagePayload,
     ) => Promise<ApiResponse<number>>;
+
+    /**
+     * Fetches all pending direct messages for the user matching the username supplied in the `username` parameter
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username to fetch the pending direct messages from
+     * @returns All the pending direct messages for the user
+     */
+    pendingDirectMessages: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<DirectMessagePayload[]>>;
 }

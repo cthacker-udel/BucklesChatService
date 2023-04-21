@@ -355,10 +355,6 @@ export class PSqlService {
                     allowNull: false,
                     type: DataTypes.STRING(128),
                 },
-                senderProfilePictureUrl: {
-                    allowNull: true,
-                    type: DataTypes.STRING(128),
-                },
                 thread: {
                     allowNull: true,
                     type: DataTypes.INTEGER,

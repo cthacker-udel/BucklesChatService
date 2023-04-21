@@ -318,7 +318,6 @@ export class FriendService implements IFriendService {
         receiver: string,
         sender: string,
         content: string,
-        senderProfilePictureUrl?: string,
     ): Promise<ApiResponse<boolean>> => {
         const doesFriendshipExist = await this.doesFriendshipExist(
             receiver,
@@ -333,7 +332,6 @@ export class FriendService implements IFriendService {
             content,
             receiver,
             sender,
-            senderProfilePictureUrl,
         });
 
         return new ApiResponse(id, Boolean(messageResult));

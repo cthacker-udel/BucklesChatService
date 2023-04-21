@@ -15,7 +15,6 @@ export class Message extends Model<
     declare id?: number;
     declare receiver?: string;
     declare sender: string;
-    declare senderProfilePictureUrl?: string;
     declare updatedAt?: Date;
     declare thread?: number;
     declare threadOrder?: number;

@@ -81,10 +81,6 @@ export class FriendController
                     handler: this.availableFriends,
                 },
                 { endpoint: "pendingRequests", handler: this.pendingRequests },
-                {
-                    endpoint: "pendingDirectMessages",
-                    handler: this.pendingDirectMessages,
-                },
             ],
             BucklesRouteType.GET,
         );
@@ -350,56 +346,18 @@ export class FriendController
                 );
             }
 
-            const { content, receiver, sender, senderProfilePictureURL } =
-                directMessagePayload;
+            const { content, receiver, sender } = directMessagePayload;
 
             const result = await this.friendService.sendDirectMessage(
                 id,
                 receiver,
                 sender,
                 content,
-                senderProfilePictureURL,
             );
 
             response.status(
                 result.data !== undefined && result.data ? 200 : 400,
             );
-            response.send(result);
-        } catch (error: unknown) {
-            await this.loggerService.LogException(
-                id,
-                exceptionToExceptionLog(error, id),
-            );
-            response.status(500);
-            response.send(
-                new ApiResponse(id).setApiError(
-                    new ApiErrorInfo(id).initException(error),
-                ),
-            );
-        }
-    };
-
-    /** @inheritdoc */
-    public pendingDirectMessages = async (
-        request: Request,
-        response: Response,
-    ): Promise<void> => {
-        let id = "";
-        try {
-            id = getIdFromRequest(request);
-
-            const username = request.query.username as string;
-
-            if (username === undefined) {
-                throw new Error("Must supply username");
-            }
-
-            const result = await this.friendService.pendingDirectMessages(
-                id,
-                username,
-            );
-
-            response.status(result.data === undefined ? 400 : 200);
             response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(

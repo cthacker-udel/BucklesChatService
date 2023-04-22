@@ -251,6 +251,11 @@ export class UserService implements IUserService {
             username,
         );
 
+        const { data: numberOfMessages } = await this.numberOfMessages(
+            id,
+            username,
+        );
+
         const { data: bulkFriendsDashboardInformation } =
             await this.friendsDashboardInformation(id, username);
 
@@ -262,6 +267,7 @@ export class UserService implements IUserService {
             ...queryResult.dataValues,
             friendsInformation: bulkFriendsDashboardInformation,
             numberOfFriends,
+            numberOfMessages,
         } as DashboardInformation);
     };
 
@@ -332,6 +338,17 @@ export class UserService implements IUserService {
             where: { [Op.or]: [{ recipient: username }, { sender: username }] },
         });
 
+        return new ApiResponse(id, queryResult.length);
+    };
+
+    /** @inheritdoc */
+    public numberOfMessages = async (
+        id: string,
+        username: string,
+    ): Promise<ApiResponse<number>> => {
+        const queryResult = await this.psqlClient.messageRepo.findAll({
+            where: { sender: username },
+        });
         return new ApiResponse(id, queryResult.length);
     };
 

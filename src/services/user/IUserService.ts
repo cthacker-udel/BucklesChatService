@@ -157,6 +157,18 @@ export interface IUserService {
     ) => Promise<ApiResponse<number>>;
 
     /**
+     * Fetches the # of messages the user has sent
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username which is used to calculate how many messages the user has sent
+     * @returns The total number of messages the user has sent
+     */
+    numberOfMessages: (
+        _id: string,
+        _username: string,
+    ) => Promise<ApiResponse<number>>;
+
+    /**
      * Fetches all the dashboard information of all of the user's friends
      *
      * @param _id - The id to track the transaction

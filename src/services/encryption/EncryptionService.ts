@@ -4,7 +4,7 @@
 import { EncryptionPayload } from "../../@types/encryption/EncryptionPayload";
 import { IEncryptionService } from "./IEncryptionService";
 import { v4 } from "uuid";
-import { createHmac, randomBytes } from "crypto";
+import { createHmac, randomBytes } from "node:crypto";
 
 /**
  * Service involving encryption, whether that be with passwords or generally any values that require encryption

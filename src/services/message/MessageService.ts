@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent -- disabled */
 /* eslint-disable implicit-arrow-linebreak -- disabled */
 
 import { Op } from "@sequelize/core";
@@ -129,11 +130,14 @@ export class MessageService implements IMessageService {
          * Calculates the new thread order that this message will be assigned to
          */
         const newThreadOrder =
-            Math.max(
-                ...allThreadMessages.map(
-                    (eachMessage) => eachMessage.dataValues.threadOrder ?? 0,
-                ),
-            ) + 1;
+            allThreadMessages.length > 0
+                ? Math.max(
+                      ...allThreadMessages.map(
+                          (eachMessage) =>
+                              eachMessage.dataValues.threadOrder ?? 0,
+                      ),
+                  ) + 1
+                : 1;
 
         /**
          * Checks if the message exists
@@ -340,9 +344,32 @@ export class MessageService implements IMessageService {
                 eachPendingMessage.dataValues.thread === null,
         );
 
+        const senderProfilePictures: Promise<User | null>[] = [];
+
+        for (const eachPendingMessage of filteredPendingMessages) {
+            senderProfilePictures.push(
+                this.psqlClient.userRepo.findOne({
+                    attributes: [["profile_image_url", "profileImageUrl"]],
+                    where: { username: eachPendingMessage.sender },
+                }),
+            );
+        }
+
+        const allSenderProfilePictures = await Promise.all(
+            senderProfilePictures,
+        );
+
+        const filteredAllSenderProfilePictures = allSenderProfilePictures.map(
+            (eachUser) => eachUser?.dataValues.profileImageUrl ?? null,
+        );
+
         const convertedMessages = filteredPendingMessages.map(
-            (eachResult: Message) =>
-                eachResult.dataValues as DirectMessagePayload,
+            (eachResult: Message, index: number) =>
+                ({
+                    ...eachResult.dataValues,
+                    senderProfilePictureUrl:
+                        filteredAllSenderProfilePictures[index],
+                } as DirectMessagePayload),
         );
 
         return new ApiResponse(id, convertedMessages);

@@ -16,6 +16,8 @@ import { BucklesRouteType } from "../../constants/enums/BucklesRouteType";
 import { RemoveThreadPayload } from "./threadDTO/RemoveThreadPayload";
 import { AddMessageToThreadPayload } from "./threadDTO/AddMessageToThreadPayload";
 import { DirectMessagePayload } from "../friend/DTO/DirectMessagePayload";
+import { ChatRoom } from "../../models/sequelize/ChatRoom";
+import { addMessageToChatRoomDTO } from "./messageDTO/addMessageToChatRoomDTO";
 
 export class MessageController
     extends BaseController
@@ -68,6 +70,10 @@ export class MessageController
                     endpoint: "pendingDirectMessages",
                     handler: this.pendingDirectMessages,
                 },
+                {
+                    endpoint: "chatroom/all",
+                    handler: this.getAllChatRooms,
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -79,6 +85,11 @@ export class MessageController
                     handler: this.addMessageToThread,
                 },
                 { endpoint: "add", handler: this.addMessage },
+                { endpoint: "chatroom/add", handler: this.createChatRoom },
+                {
+                    endpoint: "chatroom/add/message",
+                    handler: this.addMessageToChatRoom,
+                },
             ],
             BucklesRouteType.POST,
         );
@@ -407,6 +418,120 @@ export class MessageController
 
             response.status(result.data === undefined ? 400 : 200);
             response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public createChatRoom = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const payload = request.body as ChatRoom;
+
+            if (payload.createdBy === undefined || payload.name === undefined) {
+                throw new Error(
+                    "Must supply proper data when creating a chat room",
+                );
+            }
+
+            const { createdBy, description, name } = payload;
+
+            const createdChatRoomId = await this.messageService.createChatRoom(
+                id,
+                createdBy,
+                name,
+                description,
+            );
+
+            response.status(200);
+            response.send(createdChatRoomId);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public addMessageToChatRoom = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const convertedBody = request.body as addMessageToChatRoomDTO;
+
+            if (
+                convertedBody.chatRoomId === undefined ||
+                convertedBody.messageId === undefined
+            ) {
+                throw new Error(
+                    "Must include chatRoomId and messageId in payload when adding message to chat room",
+                );
+            }
+
+            const { chatRoomId, messageId } = convertedBody;
+
+            const addedMessageResponse =
+                await this.messageService.addMessageToChatRoom(
+                    id,
+                    messageId,
+                    chatRoomId,
+                );
+
+            response.status(200);
+            response.send(addedMessageResponse);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public getAllChatRooms = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const allChatRooms = await this.messageService.getAllChatRooms(id);
+
+            response.status(200);
+            response.send(allChatRooms);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

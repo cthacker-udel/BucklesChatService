@@ -11,7 +11,7 @@ export class ChatRoom extends Model<
 > {
     declare createdAt?: Date;
     declare createdBy: string;
-    declare description: string;
+    declare description?: string;
     declare name: string;
     declare updatedAt?: Date;
     declare id?: number;

@@ -2,6 +2,7 @@ import { ThreadMessage } from "../../@types/message/ThreadMessage";
 import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
 import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { Thread } from "../../models/sequelize/Thread";
 
 export interface IMessageService {
@@ -126,4 +127,39 @@ export interface IMessageService {
         _id: string,
         _username: string,
     ) => Promise<string | undefined>;
+
+    /**
+     * Creates a chat room in the database
+     *
+     * @param _id - The id to track the transaction
+     * @param
+     * @returns - The id of the created chat room (-1 if not created)
+     */
+    createChatRoom: (
+        _id: string,
+        _createdBy: string,
+        _name: string,
+        _description?: string,
+    ) => Promise<ApiResponse<number>>;
+
+    /**
+     * Adds a message to the chat room
+     * @param _id - The id to track the transaction
+     * @param _messageId - The id of the message to append to the chat room
+     * @param _chatRoomId - The id of the chat room that will be having a message appended to it
+     * @returns The id of the message that was appended, -1 if failed
+     */
+    addMessageToChatRoom: (
+        _id: string,
+        _messageId: number,
+        _chatRoomId: number,
+    ) => Promise<ApiResponse<number>>;
+
+    /**
+     * Gets all chat-rooms in the application
+     *
+     * @param _id - The id to track the transaction
+     * @returns - All chat-rooms in the application
+     */
+    getAllChatRooms: (_id: string) => Promise<ApiResponse<ChatRoom[]>>;
 }

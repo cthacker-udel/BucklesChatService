@@ -9,7 +9,7 @@ export class Message extends Model<
     InferAttributes<Message>,
     InferCreationAttributes<Message>
 > {
-    declare chatRoom?: string;
+    declare chatRoom?: number;
     declare content: string;
     declare createdAt?: Date;
     declare id?: number;

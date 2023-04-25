@@ -331,7 +331,7 @@ export class PSqlService {
             {
                 chatRoom: {
                     allowNull: true,
-                    type: DataTypes.STRING(128),
+                    type: DataTypes.INTEGER,
                 },
                 content: {
                     allowNull: false,

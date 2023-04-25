@@ -89,4 +89,34 @@ export interface IMessageController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * Creates a chat room in the database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns The id of the created chat room (-1 if failed to create)
+     */
+    createChatRoom: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Adds a message to the chat room
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns The id of the message that was appended
+     */
+    addMessageToChatRoom: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
+
+    /**
+     * Returns all of the chat rooms in the application
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns All of the chat-rooms in the application
+     */
+    getAllChatRooms: (_request: Request, _response: Response) => Promise<void>;
 }

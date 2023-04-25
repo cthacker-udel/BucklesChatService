@@ -11,6 +11,7 @@ import { ThreadMessage } from "../../@types/message/ThreadMessage";
 import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
 import { User } from "../../models/sequelize/User";
 import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
+import { ChatRoom } from "../../models/sequelize/ChatRoom";
 
 export class MessageService implements IMessageService {
     /**
@@ -373,5 +374,52 @@ export class MessageService implements IMessageService {
         );
 
         return new ApiResponse(id, convertedMessages);
+    };
+
+    /** @inheritdoc */
+    public createChatRoom = async (
+        id: string,
+        createdBy: string,
+        name: string,
+        description?: string,
+    ): Promise<ApiResponse<number>> => {
+        const createdChatRoom = await this.psqlClient.chatRoomRepo.create({
+            createdBy,
+            description,
+            name,
+        });
+
+        if (createdChatRoom === null) {
+            return new ApiResponse(id, -1);
+        }
+
+        return new ApiResponse(id, createdChatRoom.id);
+    };
+
+    /** @inheritdoc */
+    public addMessageToChatRoom = async (
+        id: string,
+        messageId: number,
+        chatRoomId: number,
+    ): Promise<ApiResponse<number>> => {
+        const [updatedCount] = await this.psqlClient.messageRepo.update(
+            { chatRoom: chatRoomId },
+            { where: { id: messageId } },
+        );
+
+        if (updatedCount === 0) {
+            return new ApiResponse(id, -1);
+        }
+
+        return new ApiResponse(id, messageId);
+    };
+
+    /** @inheritdoc */
+    public getAllChatRooms = async (
+        id: string,
+    ): Promise<ApiResponse<ChatRoom[]>> => {
+        const allChatRooms = await this.psqlClient.chatRoomRepo.findAll();
+
+        return new ApiResponse(id, allChatRooms);
     };
 }

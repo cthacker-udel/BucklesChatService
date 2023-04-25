@@ -1,6 +1,7 @@
 import { ThreadMessage } from "../../@types/message/ThreadMessage";
 import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
 import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
+import { ChatRoomStats } from "../../controllers/message/chatroomDTO/ChatRoomStats";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { Thread } from "../../models/sequelize/Thread";
@@ -162,4 +163,16 @@ export interface IMessageService {
      * @returns - All chat-rooms in the application
      */
     getAllChatRooms: (_id: string) => Promise<ApiResponse<ChatRoom[]>>;
+
+    /**
+     * Gets the chat room statistics for the matching chat room who's id was passed in
+     *
+     * @param _id - The id to track the transaction
+     * @param _chatRoomId - The id of the chat room used for lookup
+     * @returns The chat room stats of the chat room associated with that id
+     */
+    getChatRoomStats: (
+        _id: string,
+        _chatRoomId: number,
+    ) => Promise<ApiResponse<ChatRoomStats>>;
 }

@@ -74,6 +74,10 @@ export class MessageController
                     endpoint: "chatroom/all",
                     handler: this.getAllChatRooms,
                 },
+                {
+                    endpoint: "chatroom/stats",
+                    handler: this.getChatRoomStats,
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -532,6 +536,42 @@ export class MessageController
 
             response.status(200);
             response.send(allChatRooms);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public getChatRoomStats = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const chatRoomId = request.query.chatRoomId;
+
+            if (chatRoomId === undefined) {
+                throw new Error("Must supply chat room id to retrieve stats");
+            }
+
+            const chatRoomStats = await this.messageService.getChatRoomStats(
+                id,
+                Number.parseInt(chatRoomId as string, 10),
+            );
+
+            response.status(200);
+            response.send(chatRoomStats);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

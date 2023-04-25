@@ -12,6 +12,7 @@ import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
 import { User } from "../../models/sequelize/User";
 import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
+import { ChatRoomStats } from "../../controllers/message/chatroomDTO/ChatRoomStats";
 
 export class MessageService implements IMessageService {
     /**
@@ -421,5 +422,39 @@ export class MessageService implements IMessageService {
         const allChatRooms = await this.psqlClient.chatRoomRepo.findAll();
 
         return new ApiResponse(id, allChatRooms);
+    };
+
+    /** @inheritdoc */
+    public getChatRoomStats = async (
+        id: string,
+        chatRoomId: number,
+    ): Promise<ApiResponse<ChatRoomStats>> => {
+        const allFoundMessages = await this.psqlClient.messageRepo.findAll({
+            order: [["created_at", "ASC"]],
+            where: { chatRoom: chatRoomId },
+        });
+
+        const lastUpdate =
+            allFoundMessages.length > 0
+                ? allFoundMessages.slice(-1)[0].dataValues.createdAt
+                : undefined;
+
+        const numberOfMessages = allFoundMessages.length;
+
+        const usersSet = new Set<string>();
+
+        allFoundMessages.forEach((eachMessage: Message) => {
+            if (!usersSet.has(eachMessage.sender)) {
+                usersSet.add(eachMessage.sender);
+            }
+        });
+
+        const numberOfUsers = usersSet.size;
+
+        return new ApiResponse(id, {
+            lastUpdate,
+            numberOfMessages,
+            numberOfUsers,
+        } as ChatRoomStats);
     };
 }

@@ -103,4 +103,13 @@ export interface IUserController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * Logs the user out, deleting their session
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns Nothing, 204 response
+     */
+    logout: (_request: Request, _response: Response) => Promise<void>;
 }

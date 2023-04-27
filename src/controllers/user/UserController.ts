@@ -89,6 +89,7 @@ export class UserController extends BaseController implements IUserController {
             [
                 { endpoint: "signup", handler: this.signUp },
                 { endpoint: "login", handler: this.login },
+                { endpoint: "logout", handler: this.logout },
             ],
             BucklesRouteType.POST,
         );
@@ -418,6 +419,33 @@ export class UserController extends BaseController implements IUserController {
             );
             response.status(200);
             response.send(userEditInformation);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public logout = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            let sessionRemoved = false;
+            id = getIdFromRequest(request);
+
+            request.session.destroy(() => (sessionRemoved = true));
+            response.status(sessionRemoved ? 204 : 500);
+            response.send({});
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

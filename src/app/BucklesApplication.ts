@@ -11,6 +11,7 @@ import { FriendController } from "../controllers/friend/FriendController";
 import { MessageController } from "../controllers/message/MessageController";
 import { createServer } from "http";
 import { SocketService } from "../services/socket/SocketService";
+import session from "express-session";
 
 export class BucklesApplication implements IBucklesApplication {
     /**
@@ -61,6 +62,13 @@ export class BucklesApplication implements IBucklesApplication {
         });
 
         this.websocketServer = new SocketService(appServer);
+        this.app.use(
+            session({
+                resave: true,
+                saveUninitialized: true,
+                secret: process.env.COOKIE_SECRET ?? "",
+            }),
+        );
         this.app.use(morgan("dev"));
         this.app.use(express.json());
         this.app.use(loggerController.generateRouter());

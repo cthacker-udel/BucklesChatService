@@ -12,7 +12,7 @@ export interface IEncryptionService {
     generateId: () => string;
 
     /**
-     * Generates the salt for hashing the value
+     * Generates the salt for hashing the value, defaults to 56 length string
      *
      * @param _saltLength - The length of the salt to generate
      * @returns The generated salt

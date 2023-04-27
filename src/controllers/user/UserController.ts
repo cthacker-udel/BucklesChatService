@@ -198,6 +198,7 @@ export class UserController extends BaseController implements IUserController {
             id = getIdFromRequest(request);
             const loginPayload = request.body as Partial<DbUser>;
             const loginResult = await this.userService.login(id, loginPayload);
+
             response.status(loginResult.data ?? false ? 200 : 400);
             response.send(loginResult);
         } catch (error: unknown) {

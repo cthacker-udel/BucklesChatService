@@ -13,6 +13,7 @@ import { User } from "../../models/sequelize/User";
 import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { ChatRoomStats } from "../../controllers/message/chatroomDTO/ChatRoomStats";
+import { ChatRoomMessage } from "../../@types/message/ChatRoomMessage";
 
 export class MessageService implements IMessageService {
     /**
@@ -402,17 +403,42 @@ export class MessageService implements IMessageService {
         id: string,
         messageId: number,
         chatRoomId: number,
-    ): Promise<ApiResponse<number>> => {
+    ): Promise<ApiResponse<Partial<ChatRoomMessage>>> => {
         const [updatedCount] = await this.psqlClient.messageRepo.update(
             { chatRoom: chatRoomId },
             { where: { id: messageId } },
         );
 
         if (updatedCount === 0) {
-            return new ApiResponse(id, -1);
+            return new ApiResponse(id, {});
         }
 
-        return new ApiResponse(id, messageId);
+        const foundMessage = await this.psqlClient.messageRepo.findOne({
+            where: { id: messageId },
+        });
+
+        if (foundMessage === null) {
+            return new ApiResponse(id, {});
+        }
+
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            where: { username: foundMessage.sender },
+        });
+
+        if (foundUser === null) {
+            return new ApiResponse(id, {});
+        }
+
+        const { profileImageUrl: senderProfilePictureUrl } = foundUser;
+
+        const { content, createdAt, sender } = foundMessage;
+
+        return new ApiResponse(id, {
+            content,
+            createdAt,
+            sender,
+            senderProfilePictureUrl,
+        } as Partial<ChatRoomMessage>);
     };
 
     /** @inheritdoc */
@@ -456,5 +482,51 @@ export class MessageService implements IMessageService {
             numberOfMessages,
             numberOfUsers,
         } as ChatRoomStats);
+    };
+
+    /** @inheritdoc */
+    public getChatRoomMessages = async (
+        id: string,
+        chatRoomId: number,
+    ): Promise<ApiResponse<ChatRoomMessage[]>> => {
+        const allChatRoomMessages = await this.psqlClient.messageRepo.findAll({
+            order: [["created_at", "ASC"]],
+            where: { chatRoom: chatRoomId },
+        });
+
+        const senderProfilePicturesPromises: Promise<User | null>[] = [];
+
+        allChatRoomMessages.forEach((eachMessage: Message) => {
+            senderProfilePicturesPromises.push(
+                this.psqlClient.userRepo.findOne({
+                    attributes: [["profile_image_url", "profileImageUrl"]],
+                    where: { username: eachMessage.sender },
+                }),
+            );
+        });
+
+        const senderProfilePictureResponses = await Promise.all(
+            senderProfilePicturesPromises,
+        );
+
+        const senderProfilePictures: (string | undefined)[] =
+            senderProfilePictureResponses.map(
+                (eachSender) => eachSender?.profileImageUrl,
+            );
+
+        const convertedMessages: ChatRoomMessage[] = allChatRoomMessages.map(
+            (eachMessage: Message, eachMessageIndex: number) => {
+                const { content, createdAt, sender } = eachMessage;
+                return {
+                    content,
+                    createdAt,
+                    sender,
+                    senderProfilePictureUrl:
+                        senderProfilePictures[eachMessageIndex],
+                };
+            },
+        );
+
+        return new ApiResponse(id, convertedMessages);
     };
 }

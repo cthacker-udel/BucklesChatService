@@ -1,3 +1,4 @@
+import { ChatRoomMessage } from "../../@types/message/ChatRoomMessage";
 import { ThreadMessage } from "../../@types/message/ThreadMessage";
 import { ThreadWithMessages } from "../../@types/message/ThreadWithMessages";
 import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
@@ -148,13 +149,13 @@ export interface IMessageService {
      * @param _id - The id to track the transaction
      * @param _messageId - The id of the message to append to the chat room
      * @param _chatRoomId - The id of the chat room that will be having a message appended to it
-     * @returns The id of the message that was appended, -1 if failed
+     * @returns The partial object of the chat room message that was appended
      */
     addMessageToChatRoom: (
         _id: string,
         _messageId: number,
         _chatRoomId: number,
-    ) => Promise<ApiResponse<number>>;
+    ) => Promise<ApiResponse<Partial<ChatRoomMessage>>>;
 
     /**
      * Gets all chat-rooms in the application
@@ -175,4 +176,16 @@ export interface IMessageService {
         _id: string,
         _chatRoomId: number,
     ) => Promise<ApiResponse<ChatRoomStats>>;
+
+    /**
+     * Gets all the chat room messages associated with the chat room
+     *
+     * @param _id - The id to track the transaction
+     * @param _chatRoomId - The id of the chat room used for finding all the associated messages
+     * @returns All of the chat room's messages
+     */
+    getChatRoomMessages: (
+        _id: string,
+        _chatRoomId: number,
+    ) => Promise<ApiResponse<ChatRoomMessage[]>>;
 }

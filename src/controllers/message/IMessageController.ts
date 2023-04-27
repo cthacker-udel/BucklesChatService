@@ -128,4 +128,16 @@ export interface IMessageController {
      * @returns The individual chat room statistics
      */
     getChatRoomStats: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Gets all the messages sent in the chat room
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns All the messages within the chat room
+     */
+    getChatRoomMessages: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
 }

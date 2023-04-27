@@ -78,6 +78,10 @@ export class MessageController
                     endpoint: "chatroom/stats",
                     handler: this.getChatRoomStats,
                 },
+                {
+                    endpoint: "chatroom/messages",
+                    handler: this.getChatRoomMessages,
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -371,11 +375,7 @@ export class MessageController
             id = getIdFromRequest(request);
             const payload = request.body as DirectMessagePayload;
 
-            if (
-                payload.content === undefined ||
-                payload.receiver === undefined ||
-                payload.sender === undefined
-            ) {
+            if (payload.content === undefined || payload.sender === undefined) {
                 throw new Error(
                     "Must send necessary credentials to add a message",
                 );
@@ -572,6 +572,44 @@ export class MessageController
 
             response.status(200);
             response.send(chatRoomStats);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public getChatRoomMessages = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const chatRoomId = request.query.id;
+
+            if (chatRoomId === undefined) {
+                throw new Error(
+                    "Must supply valid id when attempting to access chat room messages",
+                );
+            }
+
+            const allMessages = await this.messageService.getChatRoomMessages(
+                id,
+                Number.parseInt(chatRoomId as unknown as string, 10),
+            );
+
+            response.status(200);
+            response.send(allMessages);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

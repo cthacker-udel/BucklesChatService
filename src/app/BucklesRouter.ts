@@ -37,40 +37,50 @@ export class BucklesRouter implements IBucklesRouter {
                     case "get": {
                         this.router.get(
                             `/${this.prefix}/${eachRoute.endpoint}`,
-                            eachRoute.handler,
-                            [...(eachRoute.middleware ?? [])],
+                            [
+                                ...(eachRoute.middleware ?? []),
+                                eachRoute.handler,
+                            ],
                         );
                         break;
                     }
                     case "put": {
                         this.router.put(
                             `/${this.prefix}/${eachRoute.endpoint}`,
-                            eachRoute.handler,
-                            [...(eachRoute.middleware ?? [])],
+                            [
+                                ...(eachRoute.middleware ?? []),
+                                eachRoute.handler,
+                            ],
                         );
                         break;
                     }
                     case "post": {
                         this.router.post(
                             `/${this.prefix}/${eachRoute.endpoint}`,
-                            eachRoute.handler,
-                            [...(eachRoute.middleware ?? [])],
+                            [
+                                ...(eachRoute.middleware ?? []),
+                                eachRoute.handler,
+                            ],
                         );
                         break;
                     }
                     case "delete": {
                         this.router.delete(
                             `/${this.prefix}/${eachRoute.endpoint}`,
-                            eachRoute.handler,
-                            [...(eachRoute.middleware ?? [])],
+                            [
+                                ...(eachRoute.middleware ?? []),
+                                eachRoute.handler,
+                            ],
                         );
                         break;
                     }
                     case "options": {
                         this.router.options(
                             `/${this.prefix}/${eachRoute.endpoint}`,
-                            eachRoute.handler,
-                            [...(eachRoute.middleware ?? [])],
+                            [
+                                ...(eachRoute.middleware ?? []),
+                                eachRoute.handler,
+                            ],
                         );
                         break;
                     }

@@ -10,7 +10,6 @@ import { RedisService } from "../services/redis/RedisService";
 import { FriendController } from "../controllers/friend/FriendController";
 import { MessageController } from "../controllers/message/MessageController";
 import { createServer } from "http";
-import { SocketService } from "../services/socket/SocketService";
 import session from "express-session";
 
 export class BucklesApplication implements IBucklesApplication {
@@ -18,11 +17,6 @@ export class BucklesApplication implements IBucklesApplication {
      * The application instance, which houses and handles all CRUD requests
      */
     public app: core.Express;
-
-    /**
-     * The websocket server
-     */
-    public websocketServer: SocketService;
 
     /**
      *  No-arg constructor that initializes the local backend instance to a new express
@@ -61,7 +55,6 @@ export class BucklesApplication implements IBucklesApplication {
             );
         });
 
-        this.websocketServer = new SocketService(appServer);
         this.app.use(
             session({
                 resave: true,

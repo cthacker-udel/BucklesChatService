@@ -18,6 +18,7 @@ import { AddMessageToThreadPayload } from "./threadDTO/AddMessageToThreadPayload
 import { DirectMessagePayload } from "../friend/DTO/DirectMessagePayload";
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { addMessageToChatRoomDTO } from "./messageDTO/addMessageToChatRoomDTO";
+import { authToken } from "../../middleware/authtoken/authtoken";
 
 export class MessageController
     extends BaseController
@@ -57,18 +58,25 @@ export class MessageController
         this.messageService = new MessageService(this.psqlClient);
         super.addRoutes(
             [
-                { endpoint: "thread/getAll", handler: this.getThreads },
+                {
+                    endpoint: "thread/getAll",
+                    handler: this.getThreads,
+                    middleware: [authToken],
+                },
                 {
                     endpoint: "thread/messages",
                     handler: this.getThreadMessages,
+                    middleware: [authToken],
                 },
                 {
                     endpoint: "thread/getAll/messages",
                     handler: this.getThreadsWithMessages,
+                    middleware: [authToken],
                 },
                 {
                     endpoint: "pendingDirectMessages",
                     handler: this.pendingDirectMessages,
+                    middleware: [authToken],
                 },
                 {
                     endpoint: "chatroom/all",

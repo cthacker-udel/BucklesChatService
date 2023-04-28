@@ -15,6 +15,9 @@ import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { ApiErrorCodes } from "../../constants/enums/ApiErrorCodes";
 import { RedisService } from "../../services/redis/RedisService";
+import { authToken } from "../../middleware/authtoken/authtoken";
+import { sign } from "jsonwebtoken";
+import { SessionToken } from "../../@types/encryption/SessionToken";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -81,6 +84,7 @@ export class UserController extends BaseController implements IUserController {
                 {
                     endpoint: "details",
                     handler: this.details,
+                    middleware: [authToken],
                 },
             ],
             BucklesRouteType.GET,
@@ -201,6 +205,15 @@ export class UserController extends BaseController implements IUserController {
             const loginResult = await this.userService.login(id, loginPayload);
 
             response.status(loginResult.data ?? false ? 200 : 400);
+            if (loginResult.data !== undefined) {
+                response.cookie(
+                    "X-USERNAME",
+                    sign(
+                        { username: loginPayload.username } as SessionToken,
+                        process.env.TOKEN_SECRET as string,
+                    ),
+                );
+            }
             response.send(loginResult);
         } catch (error: unknown) {
             await this.loggerService.LogException(

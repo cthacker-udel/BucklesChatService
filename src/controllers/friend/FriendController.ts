@@ -17,6 +17,7 @@ import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { FriendRequestPayload } from "./DTO/FriendRequestPayload";
 import { FriendPayload } from "./DTO/FriendPayload";
 import { DirectMessagePayload } from "./DTO/DirectMessagePayload";
+import { authToken } from "../../middleware/authtoken/authtoken";
 
 export class FriendController
     extends BaseController
@@ -63,13 +64,30 @@ export class FriendController
 
         super.addRoutes(
             [
-                { endpoint: "sendRequest", handler: this.sendRequest },
-                { endpoint: "acceptRequest", handler: this.acceptRequest },
-                { endpoint: "rejectRequest", handler: this.rejectRequest },
-                { endpoint: "removeFriend", handler: this.removeFriend },
+                {
+                    endpoint: "sendRequest",
+                    handler: this.sendRequest,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "acceptRequest",
+                    handler: this.acceptRequest,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "rejectRequest",
+                    handler: this.rejectRequest,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "removeFriend",
+                    handler: this.removeFriend,
+                    middleware: [authToken],
+                },
                 {
                     endpoint: "sendDirectMessage",
                     handler: this.sendDirectMessage,
+                    middleware: [authToken],
                 },
             ],
             BucklesRouteType.POST,
@@ -79,8 +97,13 @@ export class FriendController
                 {
                     endpoint: "availableFriends",
                     handler: this.availableFriends,
+                    middleware: [authToken],
                 },
-                { endpoint: "pendingRequests", handler: this.pendingRequests },
+                {
+                    endpoint: "pendingRequests",
+                    handler: this.pendingRequests,
+                    middleware: [authToken],
+                },
             ],
             BucklesRouteType.GET,
         );

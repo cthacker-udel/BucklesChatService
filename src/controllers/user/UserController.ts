@@ -464,12 +464,13 @@ export class UserController extends BaseController implements IUserController {
     ): Promise<void> => {
         let id = "";
         try {
-            let sessionRemoved = false;
             id = getIdFromRequest(request);
 
-            request.session.destroy(() => (sessionRemoved = true));
-            response.status(sessionRemoved ? 204 : 500);
-            response.send({});
+            request.session.destroy(() => {});
+            response.clearCookie("connect.sid");
+            response.clearCookie("X-USERNAME");
+            response.status(200);
+            response.send({ data: true });
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

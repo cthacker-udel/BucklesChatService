@@ -395,8 +395,10 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
             const payload = request.body as DirectMessagePayload;
+            payload.sender =
+                this.encryptionService.getUsernameFromRequest(request);
 
-            if (payload.content === undefined || payload.sender === undefined) {
+            if (payload.content === undefined) {
                 throw new Error(
                     "Must send necessary credentials to add a message",
                 );

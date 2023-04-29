@@ -18,6 +18,7 @@ import { FriendRequestPayload } from "./DTO/FriendRequestPayload";
 import { FriendPayload } from "./DTO/FriendPayload";
 import { DirectMessagePayload } from "./DTO/DirectMessagePayload";
 import { authToken } from "../../middleware/authtoken/authtoken";
+import { EncryptionService } from "../../services/encryption/EncryptionService";
 
 export class FriendController
     extends BaseController
@@ -49,18 +50,25 @@ export class FriendController
     private readonly friendService: FriendService;
 
     /**
+     * Service used for accessing and processing the token
+     */
+    private readonly encryptionService: EncryptionService;
+
+    /**
      * No-arg constructor, whose purpose is to initialize the psql instance
      */
     public constructor(
         _mongoService: MongoService,
         _psqlService: PSqlService,
         _redisService: RedisService,
+        _encryptionService: EncryptionService,
     ) {
         super(undefined, "friend");
         this.loggerService = new LoggerService(_mongoService);
         this.mongoService = _mongoService;
         this.psqlClient = _psqlService;
         this.redisService = _redisService;
+        this.encryptionService = _encryptionService;
 
         super.addRoutes(
             [
@@ -135,7 +143,8 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username = request.query.username as string;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
             const availableFriends = await this.friendService.availableFriends(
                 id,
                 username,
@@ -196,7 +205,8 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username = request.query.username;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
 
             if (username === undefined) {
                 throw new Error("Must supply username");

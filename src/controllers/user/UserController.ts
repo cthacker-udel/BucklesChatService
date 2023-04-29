@@ -18,6 +18,7 @@ import { RedisService } from "../../services/redis/RedisService";
 import { authToken } from "../../middleware/authtoken/authtoken";
 import { sign } from "jsonwebtoken";
 import { SessionToken } from "../../@types/encryption/SessionToken";
+import { EncryptionService } from "../../services/encryption/EncryptionService";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -46,18 +47,25 @@ export class UserController extends BaseController implements IUserController {
     private readonly userService: UserService;
 
     /**
+     * Services used for encryption needs
+     */
+    private readonly encryptionService: EncryptionService;
+
+    /**
      * No-arg constructor, whose purpose is to initialize the psql instance
      */
     public constructor(
         _mongoService: MongoService,
         _psqlService: PSqlService,
         _redisService: RedisService,
+        _encryptionService: EncryptionService,
     ) {
         super(undefined, "user");
         this.loggerService = new LoggerService(_mongoService);
         this.mongoService = _mongoService;
         this.psqlClient = _psqlService;
         this.redisService = _redisService;
+        this.encryptionService = _encryptionService;
 
         super.addRoutes(
             [
@@ -270,7 +278,8 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username = request.query.username as string;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
             const {
                 username: _,
                 password: __,
@@ -362,7 +371,8 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username = request.query.username as string;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
             const userDashboardInformation =
                 await this.userService.dashboardInformation(id, username);
             response.status(200);
@@ -425,7 +435,8 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username = request.query.username as string;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
             const userEditInformation = await this.userService.details(
                 id,
                 username,

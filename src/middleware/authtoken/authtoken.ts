@@ -18,7 +18,7 @@ export const authToken = (
         if (request.url.includes("login") && request.method.includes("POST")) {
             nextFunction();
         } else {
-            const token = request.cookies("X-USERNAME") as string;
+            const token = request.cookies["X-USERNAME"] as string;
 
             const decodedToken = verify(
                 token,
@@ -26,11 +26,12 @@ export const authToken = (
             ) as Partial<SessionToken>;
 
             if (decodedToken.username === undefined) {
+                response.clearCookie("X-USERNAME");
                 throw new Error("Invalid token supplied");
             }
             nextFunction();
         }
-    } catch {
-        response.status(401).json({});
+    } catch (error: unknown) {
+        response.status(401).json({ message: (error as Error).message });
     }
 };

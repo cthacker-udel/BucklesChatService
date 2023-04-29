@@ -9,8 +9,9 @@ import { PSqlService } from "../services/psql/PSqlService";
 import { RedisService } from "../services/redis/RedisService";
 import { FriendController } from "../controllers/friend/FriendController";
 import { MessageController } from "../controllers/message/MessageController";
-import { createServer } from "http";
 import session from "express-session";
+import { EncryptionService } from "../services/encryption/EncryptionService";
+import cookieParser from "cookie-parser";
 
 export class BucklesApplication implements IBucklesApplication {
     /**
@@ -30,31 +31,31 @@ export class BucklesApplication implements IBucklesApplication {
         const mongoService = new MongoService();
         const psqlService = new PSqlService();
         const redisService = new RedisService();
+        const encryptionService = new EncryptionService();
 
         const loggerController = new LoggerController(mongoService);
         const userController = new UserController(
             mongoService,
             psqlService,
             redisService,
+            encryptionService,
         );
         const friendController = new FriendController(
             mongoService,
             psqlService,
             redisService,
+            encryptionService,
         );
 
         const messageController = new MessageController(
             mongoService,
             psqlService,
+            encryptionService,
         );
 
-        const appServer = createServer(this.app);
-        appServer.listen(process.env.WEBSOCKET_PORT, () => {
-            console.log(
-                `Websocket listening on port ${process.env.WEBSOCKET_PORT}`,
-            );
-        });
-
+        this.app.use(morgan("dev"));
+        this.app.use(cookieParser());
+        this.app.use(express.json());
         this.app.use(
             session({
                 resave: true,
@@ -62,8 +63,6 @@ export class BucklesApplication implements IBucklesApplication {
                 secret: process.env.COOKIE_SECRET ?? "",
             }),
         );
-        this.app.use(morgan("dev"));
-        this.app.use(express.json());
         this.app.use(loggerController.generateRouter());
         this.app.use(userController.generateRouter());
         this.app.use(friendController.generateRouter());

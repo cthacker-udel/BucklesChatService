@@ -19,6 +19,7 @@ import { DirectMessagePayload } from "../friend/DTO/DirectMessagePayload";
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { addMessageToChatRoomDTO } from "./messageDTO/addMessageToChatRoomDTO";
 import { authToken } from "../../middleware/authtoken/authtoken";
+import { EncryptionService } from "../../services/encryption/EncryptionService";
 
 export class MessageController
     extends BaseController
@@ -45,17 +46,27 @@ export class MessageController
     private readonly messageService: MessageService;
 
     /**
+     * Encryption service used for decoding tokens
+     */
+    private readonly encryptionService: EncryptionService;
+
+    /**
      * 3-arg constructor, taking in instances of the necessary services to run functionally complete
      *
      * @param _mongoService - The mongodb service
      * @param _psqlService - The psql service
      */
-    public constructor(_mongoService: MongoService, _psqlService: PSqlService) {
+    public constructor(
+        _mongoService: MongoService,
+        _psqlService: PSqlService,
+        _encryptionService: EncryptionService,
+    ) {
         super(undefined, "message");
         this.psqlClient = _psqlService;
         this.mongoService = _mongoService;
         this.loggerService = new LoggerService(_mongoService);
         this.messageService = new MessageService(this.psqlClient);
+        this.encryptionService = _encryptionService;
         super.addRoutes(
             [
                 {
@@ -181,7 +192,8 @@ export class MessageController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username = request.query.username as string;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
 
             if (username === undefined) {
                 throw new Error(
@@ -348,7 +360,8 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
 
-            const username = request.query.username as string;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
 
             if (username === undefined || username.length === 0) {
                 throw new Error("Must supply username to fetch thread data");
@@ -417,7 +430,8 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
 
-            const username = request.query.username as string;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
 
             if (username === undefined) {
                 throw new Error("Must supply username");

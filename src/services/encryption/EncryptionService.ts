@@ -5,6 +5,9 @@ import { EncryptionPayload } from "../../@types/encryption/EncryptionPayload";
 import { IEncryptionService } from "./IEncryptionService";
 import { v4 } from "uuid";
 import { createHmac, randomBytes } from "node:crypto";
+import { Request } from "express";
+import { verify } from "jsonwebtoken";
+import { SessionToken } from "../../@types/encryption/SessionToken";
 
 /**
  * Service involving encryption, whether that be with passwords or generally any values that require encryption
@@ -35,5 +38,17 @@ export class EncryptionService implements IEncryptionService {
         const hmacAlgo = createHmac("sha256", salt);
         const hashedData = hmacAlgo.update(value);
         return hashedData.digest("hex");
+    };
+
+    /** @inheritdoc */
+    public getUsernameFromRequest = (request: Request): string => {
+        const token = request.cookies["X-USERNAME"] as string;
+
+        const decoded = verify(
+            token,
+            process.env.TOKEN_SECRET as string,
+        ) as SessionToken;
+
+        return decoded.username;
     };
 }

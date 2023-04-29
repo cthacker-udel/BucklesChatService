@@ -1,3 +1,4 @@
+import { Request } from "express";
 import { EncryptionPayload } from "../../@types/encryption/EncryptionPayload";
 
 /**
@@ -35,4 +36,12 @@ export interface IEncryptionService {
      * @returns The hashed value given the salt
      */
     fixedValueEncryption: (_salt: string, _value: string) => string;
+
+    /**
+     * Fetches the username given the request containing the jwt token
+     *
+     * @param _request - The request coming from the client, which contains a cookie containing the cookie
+     * @returns The username contained within that token
+     */
+    getUsernameFromRequest: (_request: Request) => string;
 }

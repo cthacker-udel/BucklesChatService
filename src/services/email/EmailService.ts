@@ -4,6 +4,7 @@ import { SendgridEmailValidationResult } from "../../@types/user/SendgridEmailVa
 import { MailboxValidationResult } from "../../@types/user/MailboxLayerValidationResult";
 import { AbstractValidationResult } from "../../@types/user/AbstractValidationResult";
 import { HunterValidationResult } from "../../@types/user/HunterValidationResult";
+import { EmailRegex } from "../../constants/regex/Email";
 
 export class EmailService implements IEmailService {
     /**
@@ -25,6 +26,10 @@ export class EmailService implements IEmailService {
     public isEmailValid = async (email: string): Promise<boolean> => {
         // try sendgrid
         try {
+            if (!EmailRegex.test(email)) {
+                return false;
+            }
+
             const [response] = await this.client.request({
                 body: JSON.stringify({ email }),
                 method: "POST",

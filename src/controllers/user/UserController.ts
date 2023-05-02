@@ -19,6 +19,7 @@ import { authToken } from "../../middleware/authtoken/authtoken";
 import { sign } from "jsonwebtoken";
 import { SessionToken } from "../../@types/encryption/SessionToken";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
+import { EmailService } from "../../services/email/EmailService";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -52,6 +53,11 @@ export class UserController extends BaseController implements IUserController {
     private readonly encryptionService: EncryptionService;
 
     /**
+     * Service used for email sending, validation, etc
+     */
+    private readonly sendgridService: EmailService;
+
+    /**
      * No-arg constructor, whose purpose is to initialize the psql instance
      */
     public constructor(
@@ -59,6 +65,7 @@ export class UserController extends BaseController implements IUserController {
         _psqlService: PSqlService,
         _redisService: RedisService,
         _encryptionService: EncryptionService,
+        _sendgridService: EmailService,
     ) {
         super(undefined, "user");
         this.loggerService = new LoggerService(_mongoService);
@@ -66,6 +73,7 @@ export class UserController extends BaseController implements IUserController {
         this.psqlClient = _psqlService;
         this.redisService = _redisService;
         this.encryptionService = _encryptionService;
+        this.sendgridService = _sendgridService;
 
         super.addRoutes(
             [
@@ -93,6 +101,10 @@ export class UserController extends BaseController implements IUserController {
                     endpoint: "details",
                     handler: this.details,
                     middleware: [authToken],
+                },
+                {
+                    endpoint: "isEmailValid",
+                    handler: this.isEmailValid,
                 },
             ],
             BucklesRouteType.GET,
@@ -129,6 +141,7 @@ export class UserController extends BaseController implements IUserController {
             this.psqlClient,
             this.loggerService,
             this.redisService,
+            this.sendgridService,
         );
     }
 
@@ -471,6 +484,41 @@ export class UserController extends BaseController implements IUserController {
             response.clearCookie("X-USERNAME");
             response.status(200);
             response.send({ data: true });
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public isEmailValid = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const email = request.query.email;
+
+            if (email === undefined) {
+                throw new Error("Must supply email to validate");
+            }
+
+            const result = await this.userService.isEmailValid(
+                id,
+                email as string,
+            );
+            response.status(200);
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

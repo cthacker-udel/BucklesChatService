@@ -179,4 +179,16 @@ export interface IUserService {
         _id: string,
         _username: string,
     ) => Promise<ApiResponse<DashboardInformation[]>>;
+
+    /**
+     * Checks if a supplied email is valid
+     *
+     * @param _id - The id to track the transaction
+     * @param _email - The email which will be validated
+     * @returns - Whether the email is valid
+     */
+    isEmailValid: (
+        _id: string,
+        _email: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

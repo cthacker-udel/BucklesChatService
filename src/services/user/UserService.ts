@@ -11,6 +11,7 @@ import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { Op } from "@sequelize/core";
 import { User } from "../../models/sequelize/User";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
+import { EmailService } from "../email/EmailService";
 
 export class UserService implements IUserService {
     /**
@@ -29,6 +30,11 @@ export class UserService implements IUserService {
     private readonly redisService: RedisService;
 
     /**
+     * The sendgrid service for handling emails, validation, etc
+     */
+    private readonly sendgridService: EmailService;
+
+    /**
      * Three-arg constructor, takes in a sql client used for interacting with the database that stores user information,
      * and takes in an LoggerService instance used for logging exceptions to the mongo database.
      *
@@ -39,10 +45,12 @@ export class UserService implements IUserService {
         _psqlClient: PSqlService,
         _loggerService: LoggerService,
         _redisService: RedisService,
+        _sendgridService: EmailService,
     ) {
         this.psqlClient = _psqlClient;
         this.loggerService = _loggerService;
         this.redisService = _redisService;
+        this.sendgridService = _sendgridService;
     }
 
     /** @inheritdoc */
@@ -382,4 +390,11 @@ export class UserService implements IUserService {
             await this.bulkDashboardInformation(id, amalgamatedUsernames);
         return allUsernamesDashboardInformation;
     };
+
+    /** @inheritdoc */
+    public isEmailValid = async (
+        id: string,
+        email: string,
+    ): Promise<ApiResponse<boolean>> =>
+        new ApiResponse(id, await this.sendgridService.isEmailValid(email));
 }

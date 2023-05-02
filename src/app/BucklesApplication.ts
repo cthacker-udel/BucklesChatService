@@ -12,6 +12,7 @@ import { MessageController } from "../controllers/message/MessageController";
 import session from "express-session";
 import { EncryptionService } from "../services/encryption/EncryptionService";
 import cookieParser from "cookie-parser";
+import { EmailService } from "../services/email/EmailService";
 
 export class BucklesApplication implements IBucklesApplication {
     /**
@@ -32,6 +33,7 @@ export class BucklesApplication implements IBucklesApplication {
         const psqlService = new PSqlService();
         const redisService = new RedisService();
         const encryptionService = new EncryptionService();
+        const sendgridService = new EmailService();
 
         const loggerController = new LoggerController(mongoService);
         const userController = new UserController(
@@ -39,6 +41,7 @@ export class BucklesApplication implements IBucklesApplication {
             psqlService,
             redisService,
             encryptionService,
+            sendgridService,
         );
         const friendController = new FriendController(
             mongoService,

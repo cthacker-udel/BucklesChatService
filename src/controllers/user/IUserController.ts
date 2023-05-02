@@ -112,4 +112,13 @@ export interface IUserController {
      * @returns Nothing, 204 response
      */
     logout: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Checks if the supplied email in the query string is valid
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if successfully validated, validation result in inner data
+     */
+    isEmailValid: (_request: Request, _response: Response) => Promise<void>;
 }

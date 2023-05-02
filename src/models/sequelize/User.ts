@@ -5,7 +5,6 @@ import {
     InferAttributes,
     InferCreationAttributes,
 } from "@sequelize/core";
-import type { UUID } from "crypto";
 
 export class User extends Model<
     InferAttributes<User>,
@@ -25,5 +24,5 @@ export class User extends Model<
     declare updatedAt?: Date;
     declare id?: number;
     declare isEmailConfirmed?: boolean;
-    declare emailConfirmationToken?: UUID;
+    declare emailConfirmationToken?: string;
 }

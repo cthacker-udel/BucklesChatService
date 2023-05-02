@@ -23,7 +23,7 @@ export class PSqlService {
         this.sqlize = new Sequelize(
             `postgres://${process.env.PSQL_USER}:${process.env.PSQL_PASSWORD}@${process.env.PSQL_HOST}:${process.env.PSQL_PORT}/${process.env.PSQL_DATABASE}`,
             {
-                logging: false,
+                logging: true,
             },
         );
 
@@ -67,7 +67,8 @@ export class PSqlService {
                 },
                 emailConfirmationToken: {
                     allowNull: true,
-                    type: DataTypes.UUID,
+                    defaultValue: null,
+                    type: DataTypes.STRING(128),
                 },
                 firstName: {
                     allowNull: true,
@@ -91,7 +92,7 @@ export class PSqlService {
                 },
                 isEmailConfirmed: {
                     allowNull: true,
-                    defaultValue: false,
+                    defaultValue: null,
                     type: DataTypes.BOOLEAN,
                 },
                 lastName: {

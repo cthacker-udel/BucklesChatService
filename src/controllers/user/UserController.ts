@@ -20,7 +20,6 @@ import { sign } from "jsonwebtoken";
 import { SessionToken } from "../../@types/encryption/SessionToken";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
 import { EmailService } from "../../services/email/EmailService";
-import { validate } from "uuid";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -93,10 +92,12 @@ export class UserController extends BaseController implements IUserController {
                 {
                     endpoint: "dashboardInformation",
                     handler: this.dashboardInformation,
+                    middleware: [authToken],
                 },
                 {
                     endpoint: "bulkDashboardInformation",
                     handler: this.bulkDashboardInformation,
+                    middleware: [authToken],
                 },
                 {
                     endpoint: "details",
@@ -106,6 +107,11 @@ export class UserController extends BaseController implements IUserController {
                 {
                     endpoint: "isEmailValid",
                     handler: this.isEmailValid,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "confirmEmail",
+                    handler: this.confirmEmail,
                     middleware: [authToken],
                 },
             ],
@@ -557,19 +563,13 @@ export class UserController extends BaseController implements IUserController {
         try {
             id = getIdFromRequest(request);
 
-            const confirmationToken = request.query.validationToken;
+            const confirmationToken = request.query.token;
             const username =
                 this.encryptionService.getUsernameFromRequest(request);
 
             if (confirmationToken === undefined) {
                 throw new Error(
                     "Must supply confirmation token if attempting to confirm email",
-                );
-            }
-
-            if (!validate(confirmationToken as string)) {
-                throw new Error(
-                    "Must supply valid uuid token when attempting to confirm email",
                 );
             }
 
@@ -585,7 +585,7 @@ export class UserController extends BaseController implements IUserController {
                 confirmationToken as string,
             );
 
-            response.send(200);
+            response.status(200);
             response.send(validateEmailResponse);
         } catch (error: unknown) {
             await this.loggerService.LogException(

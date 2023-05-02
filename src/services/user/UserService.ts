@@ -8,7 +8,7 @@ import { DbUser } from "../../@types/user/DbUser";
 import { EncryptionService } from "../encryption/EncryptionService";
 import { RedisService } from "../redis/RedisService";
 import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
-import { Op } from "@sequelize/core";
+import { Literal, Op } from "@sequelize/core";
 import { User } from "../../models/sequelize/User";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { EmailService } from "../email/EmailService";
@@ -448,7 +448,7 @@ export class UserService implements IUserService {
 
         const [updatedEntities] = await this.psqlClient.userRepo.update(
             {
-                emailConfirmationToken: undefined,
+                emailConfirmationToken: new Literal(null),
                 isEmailConfirmed: true,
             },
             { where: { username } },
@@ -472,6 +472,15 @@ export class UserService implements IUserService {
 
         const { username } = foundUser;
         const token = new EncryptionService().generateSalt();
+
+        const [updateCount] = await this.psqlClient.userRepo.update(
+            { emailConfirmationToken: token },
+            { where: { email } },
+        );
+
+        if (updateCount === 0) {
+            return new ApiResponse(id, false);
+        }
 
         const confirmationEmailResponse = await this.sendgridService.sendEmail({
             dynamicTemplateData: {

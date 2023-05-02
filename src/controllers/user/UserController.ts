@@ -317,8 +317,8 @@ export class UserController extends BaseController implements IUserController {
                 editResponse.data &&
                 rest.email !== undefined
             ) {
-                // updated email, send welcome email
-                await this.userService.sendWelcomeEmail(id, rest.email);
+                // updated email, send confirmation email to confirm email
+                await this.userService.sendConfirmationEmail(id, rest.email);
             }
 
             response.status(200);

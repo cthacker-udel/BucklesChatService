@@ -91,6 +91,7 @@ export class PSqlService {
                 },
                 isEmailConfirmed: {
                     allowNull: true,
+                    defaultValue: false,
                     type: DataTypes.BOOLEAN,
                 },
                 lastName: {

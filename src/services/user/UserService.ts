@@ -456,4 +456,33 @@ export class UserService implements IUserService {
 
         return new ApiResponse(id, updatedEntities > 0);
     };
+
+    /** @inheritdoc */
+    public sendConfirmationEmail = async (
+        id: string,
+        email: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            where: { email },
+        });
+
+        if (foundUser === null) {
+            return new ApiResponse(id, false);
+        }
+
+        const { username } = foundUser;
+        const token = new EncryptionService().generateSalt();
+
+        const confirmationEmailResponse = await this.sendgridService.sendEmail({
+            dynamicTemplateData: {
+                baseUrl: process.env.BASE_URL as string,
+                token,
+                username,
+            },
+            templateId: process.env.CONFIRMATION_EMAIL_TEMPLATE_ID as string,
+            to: { email },
+        });
+
+        return new ApiResponse(id, confirmationEmailResponse);
+    };
 }

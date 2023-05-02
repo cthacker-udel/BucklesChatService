@@ -217,4 +217,16 @@ export interface IUserService {
         _username: string,
         _confirmationToken: string,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Sends a confirmation email to the passed in email
+     *
+     * @param _id - The id to track the transaction
+     * @param _email - The email which will be sent the confirmation email
+     * @returns - Whether the confirmation email was sent or not
+     */
+    sendConfirmationEmail: (
+        _id: string,
+        _email: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

@@ -311,8 +311,8 @@ export class UserService implements IUserService {
     ): Promise<ApiResponse<DashboardInformation>> => {
         const queryResult = await this.psqlClient.userRepo?.findOne({
             attributes: [
-                "first_name",
-                "last_name",
+                ["first_name", "firstName"],
+                ["last_name", "lastName"],
                 "email",
                 "handle",
                 "dob",

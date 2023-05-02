@@ -20,6 +20,7 @@ import { sign } from "jsonwebtoken";
 import { SessionToken } from "../../@types/encryption/SessionToken";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
 import { EmailService } from "../../services/email/EmailService";
+import { validate } from "uuid";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -533,6 +534,59 @@ export class UserController extends BaseController implements IUserController {
                 "stale-while-revalidate=180",
             ]);
             response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public confirmEmail = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const confirmationToken = request.query.validationToken;
+            const username =
+                this.encryptionService.getUsernameFromRequest(request);
+
+            if (confirmationToken === undefined) {
+                throw new Error(
+                    "Must supply confirmation token if attempting to confirm email",
+                );
+            }
+
+            if (!validate(confirmationToken as string)) {
+                throw new Error(
+                    "Must supply valid uuid token when attempting to confirm email",
+                );
+            }
+
+            if (username === undefined) {
+                throw new Error(
+                    "Must supply username in request when trying to confirm email",
+                );
+            }
+
+            const validateEmailResponse = await this.userService.confirmEmail(
+                id,
+                username,
+                confirmationToken as string,
+            );
+
+            response.send(200);
+            response.send(validateEmailResponse);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

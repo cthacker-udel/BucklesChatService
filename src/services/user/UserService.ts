@@ -423,4 +423,37 @@ export class UserService implements IUserService {
             }),
         );
     };
+
+    /** @inheritdoc */
+    public confirmEmail = async (
+        id: string,
+        username: string,
+        confirmationToken: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            attributes: [
+                ["email_confirmation_token", "emailConfirmationToken"],
+                ["is_email_confirmed", "isEmailConfirmed"],
+            ],
+            where: { username },
+        });
+
+        if (foundUser?.isEmailConfirmed ?? false) {
+            return new ApiResponse(id, false);
+        }
+
+        if (foundUser?.emailConfirmationToken !== confirmationToken) {
+            return new ApiResponse(id, false);
+        }
+
+        const [updatedEntities] = await this.psqlClient.userRepo.update(
+            {
+                emailConfirmationToken: undefined,
+                isEmailConfirmed: true,
+            },
+            { where: { username } },
+        );
+
+        return new ApiResponse(id, updatedEntities > 0);
+    };
 }

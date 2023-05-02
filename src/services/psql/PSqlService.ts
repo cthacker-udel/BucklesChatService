@@ -65,6 +65,10 @@ export class PSqlService {
                         isEmail: true,
                     },
                 },
+                emailConfirmationToken: {
+                    allowNull: true,
+                    type: DataTypes.UUID,
+                },
                 firstName: {
                     allowNull: true,
                     type: DataTypes.STRING(70),
@@ -84,6 +88,10 @@ export class PSqlService {
                     autoIncrement: true,
                     primaryKey: true,
                     type: DataTypes.INTEGER,
+                },
+                isEmailConfirmed: {
+                    allowNull: true,
+                    type: DataTypes.BOOLEAN,
                 },
                 lastName: {
                     allowNull: true,

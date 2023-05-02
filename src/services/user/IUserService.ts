@@ -203,4 +203,18 @@ export interface IUserService {
         _id: string,
         _email: string,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Confirms the user's email, allowing them to receive emails
+     *
+     * @param _id - The id to track the transaction
+     * @param _username - The username which belongs to the user validating the email token
+     * @param _confirmationToken - The confirmation token which proves this came from an email sent out
+     * @returns Whether the email was confirmed
+     */
+    confirmEmail: (
+        _id: string,
+        _username: string,
+        _confirmationToken: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

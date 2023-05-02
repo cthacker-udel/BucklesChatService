@@ -121,4 +121,13 @@ export interface IUserController {
      * @returns 200 if successfully validated, validation result in inner data
      */
     isEmailValid: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Sends a confirmation email to the user
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if successfully sent, else otherwise
+     */
+    confirmEmail: (_request: Request, _response: Response) => Promise<void>;
 }

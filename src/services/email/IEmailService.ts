@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent -- disabled */
 import type { MailDataRequired } from "@sendgrid/mail";
 
 export interface IEmailService {
@@ -16,5 +17,8 @@ export interface IEmailService {
      * @param _payload - The email payload we are using to send the email, omitting from because that is already populated via environment variable
      * @returns Whether the email was sent successfully
      */
-    sendEmail: (_payload: MailDataRequired) => Promise<boolean>;
+    sendEmail: (
+        _payload: Omit<MailDataRequired, "from" | "replyTo"> &
+            Partial<Pick<MailDataRequired, "from" | "replyTo">>,
+    ) => Promise<boolean>;
 }

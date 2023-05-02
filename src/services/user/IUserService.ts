@@ -191,4 +191,16 @@ export interface IUserService {
         _id: string,
         _email: string,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Sends a welcome email to the user who just added that email to their account
+     *
+     * @param _id - the id to track the transaction
+     * @param _email - The email which will be sent the welcome email
+     * @returns - Whether the welcome email was sent or not
+     */
+    sendWelcomeEmail: (
+        _id: string,
+        _email: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

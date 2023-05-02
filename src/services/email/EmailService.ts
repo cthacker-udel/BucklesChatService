@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent -- disabled */
 import { Client } from "@sendgrid/client";
 import { IEmailService } from "./IEmailService";
 import { SendgridEmailValidationResult } from "../../@types/user/SendgridEmailValidationResult";
@@ -98,13 +99,19 @@ export class EmailService implements IEmailService {
     };
 
     /** @inheritdoc */
-    public sendEmail = async (payload: MailDataRequired): Promise<boolean> => {
+    public sendEmail = async (
+        payload: Omit<MailDataRequired, "from"> &
+            Partial<Pick<MailDataRequired, "from">>,
+    ): Promise<boolean> => {
         payload.from = {
             email: process.env.FROM_EMAIL as string,
             name: process.env.FROM_EMAIL_NAME,
         };
+        payload.replyTo = { ...payload.from };
 
-        const [sendEmailResponse] = await this.mailClient.send(payload);
+        const [sendEmailResponse] = await this.mailClient.send(
+            payload as unknown as MailDataRequired,
+        );
 
         return sendEmailResponse.statusCode === 202;
     };

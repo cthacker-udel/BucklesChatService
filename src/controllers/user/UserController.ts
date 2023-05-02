@@ -311,6 +311,15 @@ export class UserController extends BaseController implements IUserController {
                 rest,
             );
 
+            if (
+                editResponse.data !== undefined &&
+                editResponse.data &&
+                rest.email !== undefined
+            ) {
+                // updated email, send welcome email
+                await this.userService.sendWelcomeEmail(id, rest.email);
+            }
+
             response.status(200);
             response.send(editResponse);
         } catch (error: unknown) {

@@ -397,4 +397,30 @@ export class UserService implements IUserService {
         email: string,
     ): Promise<ApiResponse<boolean>> =>
         new ApiResponse(id, await this.sendgridService.isEmailValid(email));
+
+    /** @inheritdoc */
+    public sendWelcomeEmail = async (
+        id: string,
+        email: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const userResponse = await this.psqlClient.userRepo.findOne({
+            attributes: ["username"],
+            where: { email },
+        });
+
+        if (userResponse === null) {
+            return new ApiResponse(id, false);
+        }
+
+        const { username } = userResponse;
+
+        return new ApiResponse(
+            id,
+            await this.sendgridService.sendEmail({
+                dynamicTemplateData: { username },
+                templateId: process.env.WELCOME_EMAIL_TEMPLATE_ID as string,
+                to: { email },
+            }),
+        );
+    };
 }

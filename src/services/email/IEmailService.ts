@@ -1,3 +1,5 @@
+import type { MailDataRequired } from "@sendgrid/mail";
+
 export interface IEmailService {
     /**
      * Checks if the supplied email is valid using multiple different apis if one is down
@@ -7,4 +9,12 @@ export interface IEmailService {
      * @returns Whether the email is a valid email or not
      */
     isEmailValid: (_email: string, _source: string) => Promise<boolean>;
+
+    /**
+     * Sends a email to the to email specified in the argument, and using the template id, allows for arguments to be passed to the email
+     *
+     * @param _payload - The email payload we are using to send the email, omitting from because that is already populated via environment variable
+     * @returns Whether the email was sent successfully
+     */
+    sendEmail: (_payload: MailDataRequired) => Promise<boolean>;
 }

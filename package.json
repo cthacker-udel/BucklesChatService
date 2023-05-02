@@ -50,6 +50,7 @@
     "dependencies": {
         "@redis/client": "^1.5.7",
         "@sendgrid/client": "^7.7.0",
+        "@sendgrid/mail": "^7.7.0",
         "@sequelize/core": "^7.0.0-alpha.23",
         "cookie-parser": "^1.4.6",
         "dotenv": "^16.0.3",

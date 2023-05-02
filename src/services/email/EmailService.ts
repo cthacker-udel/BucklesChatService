@@ -4,12 +4,18 @@ import { SendgridEmailValidationResult } from "../../@types/user/SendgridEmailVa
 import { MailboxValidationResult } from "../../@types/user/MailboxLayerValidationResult";
 import { AbstractValidationResult } from "../../@types/user/AbstractValidationResult";
 import { HunterValidationResult } from "../../@types/user/HunterValidationResult";
+import { type MailDataRequired, MailService } from "@sendgrid/mail";
 
 export class EmailService implements IEmailService {
     /**
      * The sendgrid client which is used to make requests
      */
     private readonly client: Client;
+
+    /**
+     * The sendgrid mail service client, used to send emails
+     */
+    private readonly mailClient: MailService;
 
     /**
      * One-arg constructor that takes in an instance of the sendgrid client to instantiate it's private field with that instance
@@ -19,6 +25,10 @@ export class EmailService implements IEmailService {
     public constructor() {
         this.client = new Client();
         this.client.setApiKey(process.env.SENDGRID_API_KEY as string);
+        this.mailClient = new MailService();
+        this.mailClient.setApiKey(process.env.SENDGRID_API_KEY as string);
+        this.mailClient.setClient(this.client);
+        this.mailClient.setTimeout(6000);
     }
 
     /** @inheritdoc */
@@ -85,5 +95,17 @@ export class EmailService implements IEmailService {
                 }
             }
         }
+    };
+
+    /** @inheritdoc */
+    public sendEmail = async (payload: MailDataRequired): Promise<boolean> => {
+        payload.from = {
+            email: process.env.FROM_EMAIL as string,
+            name: process.env.FROM_EMAIL_NAME,
+        };
+
+        const [sendEmailResponse] = await this.mailClient.send(payload);
+
+        return sendEmailResponse.statusCode === 202;
     };
 }

@@ -519,6 +519,10 @@ export class UserController extends BaseController implements IUserController {
                 email as string,
             );
             response.status(200);
+            response.setHeader("Cache-Control", [
+                "max-age=180",
+                "stale-while-revalidate=180",
+            ]);
             response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(

@@ -3,6 +3,7 @@ import { IEmailService } from "./IEmailService";
 import { SendgridEmailValidationResult } from "../../@types/user/SendgridEmailValidationResult";
 import { MailboxValidationResult } from "../../@types/user/MailboxLayerValidationResult";
 import { AbstractValidationResult } from "../../@types/user/AbstractValidationResult";
+import { HunterValidationResult } from "../../@types/user/HunterValidationResult";
 
 export class EmailService implements IEmailService {
     /**
@@ -34,29 +35,44 @@ export class EmailService implements IEmailService {
             return convertedResponse.result.verdict === "Valid";
         } catch {
             try {
-                const mailboxLayerResponse = await fetch(
-                    `https://api.apilayer.com/email_verification/check?email=${email}`,
-                    {
-                        headers: {
-                            apikey: process.env.MAILBOX_LAYER_API_KEY as string,
-                        },
-                        method: "GET",
-                        redirect: "follow",
-                    },
+                const hunterResponse = await fetch(
+                    `https://api.hunter.io/v2/email-verifier?email=${email}&api_key=${process.env.HUNTER_IO_API_KEY}`,
                 );
-                const mailboxResponseJSON = await mailboxLayerResponse.json();
+
+                const hunterResponseJSON = await hunterResponse.json();
                 return (
-                    (mailboxResponseJSON as MailboxValidationResult).score > 0
+                    (hunterResponseJSON as HunterValidationResult).data
+                        .result !== "undeliverable"
                 );
             } catch {
-                const abstractResponse = await fetch(
-                    `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`,
-                );
-                const abstractResponseJSON = await abstractResponse.json();
-                return (
-                    (abstractResponseJSON as AbstractValidationResult)
-                        .deliverability === "DELIVERABLE"
-                );
+                try {
+                    const mailboxLayerResponse = await fetch(
+                        `https://api.apilayer.com/email_verification/check?email=${email}`,
+                        {
+                            headers: {
+                                apikey: process.env
+                                    .MAILBOX_LAYER_API_KEY as string,
+                            },
+                            method: "GET",
+                            redirect: "follow",
+                        },
+                    );
+                    const mailboxResponseJSON =
+                        await mailboxLayerResponse.json();
+                    return (
+                        (mailboxResponseJSON as MailboxValidationResult).score >
+                        0
+                    );
+                } catch {
+                    const abstractResponse = await fetch(
+                        `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`,
+                    );
+                    const abstractResponseJSON = await abstractResponse.json();
+                    return (
+                        (abstractResponseJSON as AbstractValidationResult)
+                            .deliverability !== "UNDELIVERABLE"
+                    );
+                }
             }
         }
     };

@@ -1,6 +1,6 @@
 export interface IEmailService {
     /**
-     * Checks if the supplied email is valid
+     * Checks if the supplied email is valid using multiple different apis if one is down
      *
      * @param _email - The email to check
      * @param _source - The source of where this validation is coming from

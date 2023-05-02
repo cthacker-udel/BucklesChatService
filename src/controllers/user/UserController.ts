@@ -105,6 +105,7 @@ export class UserController extends BaseController implements IUserController {
                 {
                     endpoint: "isEmailValid",
                     handler: this.isEmailValid,
+                    middleware: [authToken],
                 },
             ],
             BucklesRouteType.GET,

@@ -23,6 +23,7 @@ export class EmailService implements IEmailService {
 
     /** @inheritdoc */
     public isEmailValid = async (email: string): Promise<boolean> => {
+        // try sendgrid
         try {
             const [response] = await this.client.request({
                 body: JSON.stringify({ email }),
@@ -34,6 +35,7 @@ export class EmailService implements IEmailService {
                 response.body as SendgridEmailValidationResult;
             return convertedResponse.result.verdict === "Valid";
         } catch {
+            // try hunter
             try {
                 const hunterResponse = await fetch(
                     `https://api.hunter.io/v2/email-verifier?email=${email}&api_key=${process.env.HUNTER_IO_API_KEY}`,
@@ -45,6 +47,7 @@ export class EmailService implements IEmailService {
                         .result !== "undeliverable"
                 );
             } catch {
+                // try mailbox layer
                 try {
                     const mailboxLayerResponse = await fetch(
                         `https://api.apilayer.com/email_verification/check?email=${email}`,
@@ -64,14 +67,21 @@ export class EmailService implements IEmailService {
                         0
                     );
                 } catch {
-                    const abstractResponse = await fetch(
-                        `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`,
-                    );
-                    const abstractResponseJSON = await abstractResponse.json();
-                    return (
-                        (abstractResponseJSON as AbstractValidationResult)
-                            .deliverability !== "UNDELIVERABLE"
-                    );
+                    // try abstract
+                    try {
+                        const abstractResponse = await fetch(
+                            `https://emailvalidation.abstractapi.com/v1/?api_key=${process.env.ABSTRACT_API_KEY}&email=${email}`,
+                        );
+                        const abstractResponseJSON =
+                            await abstractResponse.json();
+                        return (
+                            (abstractResponseJSON as AbstractValidationResult)
+                                .deliverability !== "UNDELIVERABLE"
+                        );
+                    } catch {
+                        // return false, failsafe option
+                        return false;
+                    }
                 }
             }
         }

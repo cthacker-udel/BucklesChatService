@@ -1,13 +1,23 @@
-export type DbUser = {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    handle?: string;
-    dob?: number;
-    username?: string;
-    password?: string;
-    passwordSalt?: string;
-    profileImageUrl?: string;
-    profileImageRemovalUrl?: string;
-    creationDate?: number;
-};
+/* eslint-disable @typescript-eslint/indent -- disabled */
+import { User } from "../../models/sequelize/User";
+
+export type DbUser = Partial<
+    Pick<
+        User,
+        | "createdAt"
+        | "dob"
+        | "email"
+        | "emailConfirmationToken"
+        | "firstName"
+        | "handle"
+        | "id"
+        | "isEmailConfirmed"
+        | "lastName"
+        | "password"
+        | "passwordSalt"
+        | "profileImageRemovalUrl"
+        | "profileImageUrl"
+        | "updatedAt"
+        | "username"
+    >
+>;

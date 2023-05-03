@@ -243,11 +243,12 @@ export class UserService implements IUserService {
     public dashboardInformation = async (
         id: string,
         username: string,
-    ): Promise<ApiResponse<DbUser>> => {
+    ): Promise<ApiResponse<DashboardInformation>> => {
         const queryResult = await this.psqlClient.userRepo?.findOne({
             attributes: [
                 "handle",
                 ["profile_image_url", "profileImageUrl"],
+                ["is_email_confirmed", "isEmailConfirmed"],
                 ["created_at", "createdAt"],
                 "username",
             ],
@@ -306,7 +307,7 @@ export class UserService implements IUserService {
         const dbUsers: DashboardInformation[] = [];
 
         queryResult.forEach((eachUser: User) => {
-            dbUsers.push(eachUser.dataValues as DbUser);
+            dbUsers.push(eachUser.dataValues as DashboardInformation);
         });
 
         return new ApiResponse(id, dbUsers);
@@ -321,6 +322,7 @@ export class UserService implements IUserService {
             attributes: [
                 ["first_name", "firstName"],
                 ["last_name", "lastName"],
+                ["is_email_confirmed", "isEmailConfirmed"],
                 "email",
                 "handle",
                 "dob",
@@ -333,7 +335,10 @@ export class UserService implements IUserService {
             return new ApiResponse(id);
         }
 
-        return new ApiResponse(id, queryResult.dataValues as DbUser);
+        return new ApiResponse(
+            id,
+            queryResult.dataValues as DashboardInformation,
+        );
     };
 
     /** @inheritdoc */
@@ -474,7 +479,7 @@ export class UserService implements IUserService {
         const token = new EncryptionService().generateSalt();
 
         const [updateCount] = await this.psqlClient.userRepo.update(
-            { emailConfirmationToken: token },
+            { emailConfirmationToken: token, isEmailConfirmed: false },
             { where: { email } },
         );
 

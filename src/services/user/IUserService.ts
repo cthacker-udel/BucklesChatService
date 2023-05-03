@@ -118,7 +118,7 @@ export interface IUserService {
     dashboardInformation: (
         _id: string,
         _username: string,
-    ) => Promise<ApiResponse<DbUser>>;
+    ) => Promise<ApiResponse<DashboardInformation>>;
 
     /**
      * Fetches the dashboard information for all usernames sent through in query string
@@ -130,7 +130,7 @@ export interface IUserService {
     bulkDashboardInformation: (
         _id: string,
         _usernames: string[],
-    ) => Promise<ApiResponse<DbUser[]>>;
+    ) => Promise<ApiResponse<DashboardInformation[]>>;
 
     /**
      * Fetches the user information relevant for editing from the database

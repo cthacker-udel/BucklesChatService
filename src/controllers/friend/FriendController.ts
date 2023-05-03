@@ -143,11 +143,11 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
+            const userId =
                 this.encryptionService.getUsernameFromRequest(request);
             const availableFriends = await this.friendService.availableFriends(
                 id,
-                username,
+                userId,
             );
             response.status(200);
             response.send(availableFriends);
@@ -173,14 +173,24 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const { customMessage, usernameTo, usernameFrom } =
+            const { customMessage, userTo } =
                 request.body as FriendRequestPayload;
+            const userFrom =
+                this.encryptionService.getUsernameFromRequest(request);
+
+            if (userFrom === undefined) {
+                throw new Error(
+                    "Must supply valid token to send friend request",
+                );
+            }
+
             const friendRequestResult = await this.friendService.sendRequest(
                 id,
-                usernameTo,
-                usernameFrom,
+                userTo,
+                userFrom,
                 customMessage,
             );
+
             response.status(200);
             response.send(friendRequestResult);
         } catch (error: unknown) {
@@ -205,18 +215,15 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
+            const userId =
                 this.encryptionService.getUsernameFromRequest(request);
 
-            if (username === undefined) {
+            if (userId === undefined) {
                 throw new Error("Must supply username");
             }
 
             const allPendingFriendRequests =
-                await this.friendService.pendingRequests(
-                    id,
-                    username as unknown as string,
-                );
+                await this.friendService.pendingRequests(id, userId);
             response.status(200);
             response.send(allPendingFriendRequests);
         } catch (error: unknown) {

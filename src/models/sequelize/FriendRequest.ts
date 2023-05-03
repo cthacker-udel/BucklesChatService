@@ -9,9 +9,9 @@ export class FriendRequest extends Model<
     InferAttributes<FriendRequest>,
     InferCreationAttributes<FriendRequest>
 > {
-    declare username: string;
+    declare username: number;
     declare customMessage?: string;
-    declare sender: string;
+    declare sender: number;
     declare createdAt?: Date;
     declare updatedAt?: Date;
     declare id?: number;

@@ -12,6 +12,6 @@ export class Thread extends Model<
     declare id?: number;
     declare createdAt?: Date;
     declare updatedAt?: Date;
-    declare creator: string;
-    declare receiver: string;
+    declare creator: number;
+    declare receiver: number;
 }

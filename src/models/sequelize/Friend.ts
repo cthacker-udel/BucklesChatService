@@ -9,8 +9,8 @@ export class Friend extends Model<
     InferAttributes<Friend>,
     InferCreationAttributes<Friend>
 > {
-    declare recipient: string;
-    declare sender: string;
+    declare recipient: number;
+    declare sender: number;
     declare accepted?: number;
     declare createdAt?: Date;
     declare updatedAt?: Date;

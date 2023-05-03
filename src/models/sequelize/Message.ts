@@ -13,8 +13,8 @@ export class Message extends Model<
     declare content: string;
     declare createdAt?: Date;
     declare id?: number;
-    declare receiver?: string;
-    declare sender: string;
+    declare receiver?: number;
+    declare sender: number;
     declare updatedAt?: Date;
     declare thread?: number;
     declare threadOrder?: number;

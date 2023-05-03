@@ -1,4 +1,3 @@
 export type CreateThreadPayload = {
-    creator: string;
-    receiver: string;
+    receiver: number;
 };

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent -- disabled */
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { DbUser } from "../../@types/user/DbUser";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
@@ -47,12 +48,12 @@ export interface IUserService {
      *
      * @param _id - The id to track the transaction
      * @param _user - The user instance we are adding
-     * @returns Whether the user logged in successfully or not
+     * @returns Whether the user logged in successfully or not, and the id of the logged in user (for session generation)
      */
     login: (
         _id: string,
         _user: Partial<DbUser>,
-    ) => Promise<ApiResponse<boolean>>;
+    ) => Promise<[ApiResponse<boolean>, number]>;
 
     /**
      * Attempts to sign the user up in the database
@@ -70,26 +71,26 @@ export interface IUserService {
      * Attempts to remove a user from the database
      *
      * @param _id - The id to track the transaction
-     * @param _username - The username we are using to find and delete the user
+     * @param _userId - The user id we are using to find and delete the user
      * @returns Whether the user was successfully deleted or not
      */
-    removeUser: (
-        _id: string,
-        _username: string,
-    ) => Promise<ApiResponse<boolean>>;
+    removeUser: (_id: string, _userId: number) => Promise<ApiResponse<boolean>>;
 
     /**
      * Edits a user within the database with the matching provided username
      *
      * @param _id - The id to track the transaction
-     * @param _username - The user upon which we are doing the edits on
+     * @param _userId - The user id upon which we are doing the edits on
      * @param _userPayload - The partial fields we are updating
      * @returns - Whether the user was updated or not
      */
     editUser: (
         _id: string,
-        _username: string,
-        _userPayload: DbUser,
+        _userId: number,
+        _userPayload: Omit<
+            DbUser,
+            "id" | "password" | "passwordSalt" | "username"
+        >,
     ) => Promise<ApiResponse<boolean>>;
 
     /**
@@ -112,12 +113,12 @@ export interface IUserService {
      * Fetches the dashboard information for the user sending the request
      *
      * @param _id - The id to track the transaction
-     * @param _username - The username which allows for gathering of the information
+     * @param _userId - The user id which allows for gathering of the information
      * @returns - The dashboard information relevant to the user
      */
     dashboardInformation: (
         _id: string,
-        _username: string,
+        _userId: number,
     ) => Promise<ApiResponse<DashboardInformation>>;
 
     /**
@@ -136,48 +137,48 @@ export interface IUserService {
      * Fetches the user information relevant for editing from the database
      *
      * @param _id - The id to track the transaction
-     * @param _username - The username which is used to access the information
+     * @param _userId - The user id which is used to access the information
      * @returns - The user information relevant for editing
      */
     details: (
         _id: string,
-        _username: string,
+        _userId: number,
     ) => Promise<ApiResponse<Partial<DbUser>>>;
 
     /**
      * Fetches the # of friends the user has
      *
      * @param _id - The id to track the transaction
-     * @param _username - The username which is used to access the information
+     * @param _userId - The user id which is used to access the information
      * @returns - The number of friends that belong to the user specified in the `_username` argument
      */
     numberOfFriends: (
         _id: string,
-        _username: string,
+        _userId: number,
     ) => Promise<ApiResponse<number>>;
 
     /**
      * Fetches the # of messages the user has sent
      *
      * @param _id - The id to track the transaction
-     * @param _username - The username which is used to calculate how many messages the user has sent
+     * @param _userId - The user id which is used to calculate how many messages the user has sent
      * @returns The total number of messages the user has sent
      */
     numberOfMessages: (
         _id: string,
-        _username: string,
+        _userId: number,
     ) => Promise<ApiResponse<number>>;
 
     /**
      * Fetches all the dashboard information of all of the user's friends
      *
      * @param _id - The id to track the transaction
-     * @param _username - The username which will be used to fetch all the friend dashboard information
+     * @param _userId - The user id which will be used to fetch all the friend dashboard information
      * @returns - All the friend's dashboard information
      */
     friendsDashboardInformation: (
         _id: string,
-        _username: string,
+        _userId: number,
     ) => Promise<ApiResponse<DashboardInformation[]>>;
 
     /**
@@ -208,13 +209,13 @@ export interface IUserService {
      * Confirms the user's email, allowing them to receive emails
      *
      * @param _id - The id to track the transaction
-     * @param _username - The username which belongs to the user validating the email token
+     * @param _userId - The user id which belongs to the user validating the email token
      * @param _confirmationToken - The confirmation token which proves this came from an email sent out
      * @returns Whether the email was confirmed
      */
     confirmEmail: (
         _id: string,
-        _username: string,
+        _userId: number,
         _confirmationToken: string,
     ) => Promise<ApiResponse<boolean>>;
 
@@ -229,4 +230,20 @@ export interface IUserService {
         _id: string,
         _email: string,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Finds the id of the user belonging to the username
+     *
+     * @param _username - The username which will be used for lookup
+     * @returns The id of the user found
+     */
+    findUserIdFromUsername: (_username: string) => Promise<number | undefined>;
+
+    /**
+     * Finds the username from the given user id
+     *
+     * @param _userId - The user id which will be used for lookup
+     * @returns - The found username of the user with the matching user id
+     */
+    findUsernameFromUserId: (_userId: number) => Promise<string | undefined>;
 }

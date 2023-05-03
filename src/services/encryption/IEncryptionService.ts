@@ -41,7 +41,7 @@ export interface IEncryptionService {
      * Fetches the username given the request containing the jwt token
      *
      * @param _request - The request coming from the client, which contains a cookie containing the cookie
-     * @returns The username contained within that token
+     * @returns The user id contained within that token
      */
-    getUsernameFromRequest: (_request: Request) => string;
+    getUsernameFromRequest: (_request: Request) => number;
 }

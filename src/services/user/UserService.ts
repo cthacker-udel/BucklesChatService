@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent -- disabled */
 /* eslint-disable implicit-arrow-linebreak -- disabled */
 
 import { IUserService } from "./IUserService";
@@ -12,6 +13,7 @@ import { Literal, Op } from "@sequelize/core";
 import { User } from "../../models/sequelize/User";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { EmailService } from "../email/EmailService";
+import { Friend } from "../../models/sequelize/Friend";
 
 export class UserService implements IUserService {
     /**
@@ -102,16 +104,21 @@ export class UserService implements IUserService {
     public login = async (
         id: string,
         user: Partial<DbUser>,
-    ): Promise<ApiResponse<boolean>> => {
+    ): Promise<[ApiResponse<boolean>, number]> => {
         const { username, password } = user;
         if (username === undefined || password === undefined) {
-            return new ApiResponse<boolean>(
-                id,
-                false,
-                new ApiErrorInfo(id).initException(
-                    new Error("Must supply proper credentials when logging in"),
+            return [
+                new ApiResponse(
+                    id,
+                    false,
+                    new ApiErrorInfo(id).initException(
+                        new Error(
+                            "Must supply proper credentials when logging in",
+                        ),
+                    ),
                 ),
-            );
+                -1,
+            ];
         }
 
         const foundEncryptedPasswordSalt = await this.findUserEncryptionData(
@@ -122,13 +129,31 @@ export class UserService implements IUserService {
             foundEncryptedPasswordSalt.passwordSalt === undefined ||
             foundEncryptedPasswordSalt.password === undefined
         ) {
-            return new ApiResponse<boolean>(
-                id,
-                false,
-                new ApiErrorInfo(id).initException(
-                    new Error("No encryption data available for user"),
+            return [
+                new ApiResponse<boolean>(
+                    id,
+                    false,
+                    new ApiErrorInfo(id).initException(
+                        new Error("No encryption data available for user"),
+                    ),
                 ),
-            );
+                -1,
+            ];
+        }
+
+        const foundUserId = await this.findUserIdFromUsername(username);
+
+        if (foundUserId === undefined) {
+            return [
+                new ApiResponse(
+                    id,
+                    false,
+                    new ApiErrorInfo(id).initException(
+                        new Error("No user id found for username supplied"),
+                    ),
+                ),
+                -1,
+            ];
         }
 
         const fixedEncryptionResult =
@@ -137,10 +162,13 @@ export class UserService implements IUserService {
                 password,
             );
 
-        return new ApiResponse(
-            id,
-            fixedEncryptionResult === foundEncryptedPasswordSalt.password,
-        );
+        return [
+            new ApiResponse(
+                id,
+                fixedEncryptionResult === foundEncryptedPasswordSalt.password,
+            ),
+            foundUserId,
+        ];
     };
 
     /** @inheritdoc */
@@ -185,48 +213,72 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public removeUser = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<boolean>> => {
-        const isUsernameInTable = await this.doesUsernameExist(id, username);
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            where: { id: userId },
+        });
+
+        if (foundUser === null) {
+            return new ApiResponse(id, false);
+        }
+
+        const isUsernameInTable = await this.doesUsernameExist(
+            id,
+            foundUser.username,
+        );
 
         if (!(isUsernameInTable.data ?? true)) {
             throw new Error("Username is not present in database");
         }
 
         const removalResult = await this.psqlClient.userRepo?.destroy({
-            where: { username },
+            where: { id: userId },
         });
 
         if (removalResult === 0 || removalResult === undefined) {
             throw new Error("Unable to remove user");
         }
 
-        return new ApiResponse<boolean>(id, removalResult > 0);
+        return new ApiResponse(id, removalResult > 0);
     };
 
     /** @inheritdoc */
     public editUser = async (
         id: string,
-        username: string,
-        userPayload: DbUser,
+        userId: number,
+        userPayload: Omit<
+            DbUser,
+            "id" | "password" | "passwordSalt" | "username"
+        >,
     ): Promise<ApiResponse<boolean>> => {
-        const isUsernameInTable = await this.doesUsernameExist(id, username);
+        const foundUsername = await this.findUsernameFromUserId(userId);
+
+        if (foundUsername === undefined) {
+            return new ApiResponse(id, false);
+        }
+
+        const isUsernameInTable = await this.doesUsernameExist(
+            id,
+            foundUsername,
+        );
 
         if (!(isUsernameInTable.data ?? false)) {
             throw new Error("Username does not exist in table");
         }
 
-        const request = await this.psqlClient.userRepo?.update(userPayload, {
-            where: { username },
-        });
+        const [updatedCount] = await this.psqlClient.userRepo.update(
+            userPayload,
+            {
+                where: { id: userId },
+            },
+        );
 
-        if (request === undefined) {
+        if (updatedCount === 0) {
             return new ApiResponse<boolean>(id, false);
         }
 
-        const numberAffected = request[0];
-
-        return new ApiResponse<boolean>(id, numberAffected > 0);
+        return new ApiResponse<boolean>(id, updatedCount > 0);
     };
 
     /** @inheritdoc */
@@ -242,9 +294,9 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public dashboardInformation = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<DashboardInformation>> => {
-        const queryResult = await this.psqlClient.userRepo?.findOne({
+        const queryResult = await this.psqlClient.userRepo.findOne({
             attributes: [
                 "handle",
                 ["profile_image_url", "profileImageUrl"],
@@ -252,21 +304,21 @@ export class UserService implements IUserService {
                 ["created_at", "createdAt"],
                 "username",
             ],
-            where: { username },
+            where: { id: userId },
         });
 
         const { data: numberOfFriends } = await this.numberOfFriends(
             id,
-            username,
+            userId,
         );
 
         const { data: numberOfMessages } = await this.numberOfMessages(
             id,
-            username,
+            userId,
         );
 
         const { data: bulkFriendsDashboardInformation } =
-            await this.friendsDashboardInformation(id, username);
+            await this.friendsDashboardInformation(id, userId);
 
         if (!queryResult) {
             return new ApiResponse(id);
@@ -285,7 +337,20 @@ export class UserService implements IUserService {
         id: string,
         usernames: string[],
     ): Promise<ApiResponse<DashboardInformation[]>> => {
-        const queryResult = await this.psqlClient.userRepo?.findAll({
+        const foundUsers = await this.psqlClient.userRepo.findAll({
+            attributes: ["id"],
+            where: {
+                username: {
+                    [Op.in]: usernames,
+                },
+            },
+        });
+
+        const userIds = foundUsers.map(
+            (eachUser: User) => eachUser.id as number,
+        );
+
+        const queryResult = await this.psqlClient.userRepo.findAll({
             attributes: [
                 "handle",
                 ["profile_image_url", "profileImageUrl"],
@@ -294,8 +359,8 @@ export class UserService implements IUserService {
             ],
             order: [["username", "ASC"]],
             where: {
-                username: {
-                    [Op.in]: usernames,
+                id: {
+                    [Op.in]: userIds,
                 },
             },
         });
@@ -316,9 +381,9 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public details = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<DashboardInformation>> => {
-        const queryResult = await this.psqlClient.userRepo?.findOne({
+        const queryResult = await this.psqlClient.userRepo.findOne({
             attributes: [
                 ["first_name", "firstName"],
                 ["last_name", "lastName"],
@@ -328,7 +393,7 @@ export class UserService implements IUserService {
                 "dob",
                 "username",
             ],
-            where: { username },
+            where: { id: userId },
         });
 
         if (!queryResult) {
@@ -344,11 +409,11 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public numberOfFriends = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<number>> => {
         const queryResult = await this.psqlClient.friendRepo.findAll({
             attributes: ["sender", "recipient"],
-            where: { [Op.or]: [{ recipient: username }, { sender: username }] },
+            where: { [Op.or]: [{ recipient: userId }, { sender: userId }] },
         });
 
         return new ApiResponse(id, queryResult.length);
@@ -357,10 +422,10 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public numberOfMessages = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<number>> => {
         const queryResult = await this.psqlClient.messageRepo.findAll({
-            where: { sender: username },
+            where: { sender: userId },
         });
         return new ApiResponse(id, queryResult.length);
     };
@@ -368,24 +433,52 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public friendsDashboardInformation = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<DashboardInformation[]>> => {
-        const sentFriendUsernames = await this.psqlClient.friendRepo.findAll({
-            attributes: ["recipient"],
-            where: { sender: username },
-        });
-        const receivedUsernames = await this.psqlClient.friendRepo.findAll({
-            attributes: ["sender"],
-            where: { recipient: username },
-        });
+        const friendsFromYourRequest = await this.psqlClient.friendRepo.findAll(
+            {
+                attributes: ["recipient"],
+                where: { sender: userId },
+            },
+        );
+
+        const friendsFromTheirRequest =
+            await this.psqlClient.friendRepo.findAll({
+                attributes: ["sender"],
+                where: { recipient: userId },
+            });
+
+        const usernamesOfFriendsFromYourRequest =
+            await this.psqlClient.userRepo.findAll({
+                attributes: ["username"],
+                where: {
+                    id: {
+                        [Op.in]: friendsFromYourRequest.map(
+                            (eachFriend) => eachFriend.recipient,
+                        ),
+                    },
+                },
+            });
+
+        const usernamesOfFriendsFromTheirRequest =
+            await this.psqlClient.userRepo.findAll({
+                attributes: ["username"],
+                where: {
+                    id: {
+                        [Op.in]: friendsFromTheirRequest.map(
+                            (eachFriend: Friend) => eachFriend.sender,
+                        ),
+                    },
+                },
+            });
 
         const amalgamatedUsernames = [
             ...new Set(
-                sentFriendUsernames
-                    .map((eachFriend) => eachFriend.recipient)
+                usernamesOfFriendsFromYourRequest
+                    .map((eachFriend) => eachFriend.username)
                     .concat(
-                        receivedUsernames.map(
-                            (eachFriend) => eachFriend.sender,
+                        usernamesOfFriendsFromTheirRequest.map(
+                            (eachFriend) => eachFriend.username,
                         ),
                     ),
             ),
@@ -432,7 +525,7 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public confirmEmail = async (
         id: string,
-        username: string,
+        userId: number,
         confirmationToken: string,
     ): Promise<ApiResponse<boolean>> => {
         const foundUser = await this.psqlClient.userRepo.findOne({
@@ -440,7 +533,7 @@ export class UserService implements IUserService {
                 ["email_confirmation_token", "emailConfirmationToken"],
                 ["is_email_confirmed", "isEmailConfirmed"],
             ],
-            where: { username },
+            where: { id: userId },
         });
 
         if (foundUser?.isEmailConfirmed ?? false) {
@@ -456,7 +549,7 @@ export class UserService implements IUserService {
                 emailConfirmationToken: new Literal(null),
                 isEmailConfirmed: true,
             },
-            { where: { username } },
+            { where: { id: userId } },
         );
 
         return new ApiResponse(id, updatedEntities > 0);
@@ -498,5 +591,37 @@ export class UserService implements IUserService {
         });
 
         return new ApiResponse(id, confirmationEmailResponse);
+    };
+
+    /** @inheritdoc */
+    public findUserIdFromUsername = async (
+        username: string,
+    ): Promise<number | undefined> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            attributes: ["id"],
+            where: { username },
+        });
+
+        if (foundUser?.id === undefined) {
+            return undefined;
+        }
+
+        return foundUser.id;
+    };
+
+    /** @inheritdoc */
+    public findUsernameFromUserId = async (
+        userId: number,
+    ): Promise<string | undefined> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            attributes: ["username"],
+            where: { id: userId },
+        });
+
+        if (foundUser === null) {
+            return undefined;
+        }
+
+        return foundUser.username;
     };
 }

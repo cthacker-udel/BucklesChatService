@@ -32,11 +32,21 @@ export class MessageService implements IMessageService {
 
     /** @inheritdoc */
     public doesThreadExist = async (
-        creator: string,
-        receiver: string,
+        creatorId: number,
+        receiverId: number,
     ): Promise<boolean> => {
         const doesExist = await this.psqlClient.threadRepo.findOne({
-            where: { creator, receiver },
+            where: { creator: creatorId, receiver: receiverId },
+        });
+        return doesExist !== null;
+    };
+
+    /** @inheritdoc */
+    public doesThreadExistIdOnly = async (
+        threadId: number,
+    ): Promise<boolean> => {
+        const doesExist = await this.psqlClient.threadRepo.findOne({
+            where: { id: threadId },
         });
         return doesExist !== null;
     };
@@ -44,20 +54,21 @@ export class MessageService implements IMessageService {
     /** @inheritdoc */
     public createThread = async (
         id: string,
-        creator: string,
-        receiver: string,
+        creatorUserId: number,
+        receiverUserId: number,
     ): Promise<ApiResponse<number>> => {
         const doesThreadAlreadyExist = await this.doesThreadExist(
-            creator,
-            receiver,
+            creatorUserId,
+            receiverUserId,
         );
+
         if (doesThreadAlreadyExist) {
             return new ApiResponse(id, -1);
         }
 
         const createResult = await this.psqlClient.threadRepo.create({
-            creator,
-            receiver,
+            creator: creatorUserId,
+            receiver: receiverUserId,
         });
 
         return new ApiResponse(id, createResult.dataValues.id);
@@ -66,11 +77,11 @@ export class MessageService implements IMessageService {
     /** @inheritdoc */
     public getThreads = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<Thread[]>> => {
         const allThreads = await this.psqlClient.threadRepo.findAll({
             where: {
-                [Op.or]: [{ creator: username }, { receiver: username }],
+                [Op.or]: [{ creator: userId }, { receiver: userId }],
             },
         });
         return new ApiResponse(id, allThreads);
@@ -85,19 +96,22 @@ export class MessageService implements IMessageService {
             await this.psqlClient.messageRepo.findAll({
                 where: { thread: threadId },
             });
+
         const deleteRequests: Promise<number>[] = [];
         allMessagesRelatedToThread.forEach((eachMessage: Message) => {
             deleteRequests.push(
                 this.psqlClient.messageRepo.destroy({
-                    where: { id: eachMessage.dataValues.id },
+                    where: { id: eachMessage.id },
                 }),
             );
         });
+
         const result = await Promise.all(deleteRequests);
 
         const threadRemoval = await this.psqlClient.threadRepo.destroy({
             where: { id: threadId },
         });
+
         return new ApiResponse<boolean>(
             id,
             result.every((eachDeletionResult) => eachDeletionResult > 0) &&
@@ -114,9 +128,7 @@ export class MessageService implements IMessageService {
         /**
          * Checks if the thread exists
          */
-        const doesThreadExist = await this.psqlClient.threadRepo.findOne({
-            where: { id: threadId },
-        });
+        const doesThreadExist = await this.doesThreadExistIdOnly(threadId);
 
         if (doesThreadExist === null) {
             return new ApiResponse<boolean>(id, false);
@@ -143,7 +155,7 @@ export class MessageService implements IMessageService {
                 : 1;
 
         /**
-         * Checks if the message exists
+         * Checks if the message exists, has to exist to be able to be added to the thread
          */
         const doesMessageExist = await this.psqlClient.messageRepo.findOne({
             where: { id: messageId },
@@ -170,13 +182,11 @@ export class MessageService implements IMessageService {
     /** @inheritdoc */
     public getThreadMessages = async (
         id: string,
-        threadId: string,
+        threadId: number,
     ): Promise<ApiResponse<ThreadMessage[]>> => {
-        const doesThreadExist = await this.psqlClient.threadRepo.findOne({
-            where: { id: threadId },
-        });
+        const doesThreadExist = await this.doesThreadExistIdOnly(threadId);
 
-        if (doesThreadExist === null) {
+        if (!doesThreadExist) {
             return new ApiResponse(id, [] as ThreadMessage[]);
         }
 
@@ -186,8 +196,7 @@ export class MessageService implements IMessageService {
         });
 
         const convertedThreadMessages = allThreadMessages.map(
-            (eachThreadMessage: Message) =>
-                eachThreadMessage.dataValues as ThreadMessage,
+            (eachThreadMessage: Message) => eachThreadMessage as ThreadMessage,
         );
 
         return new ApiResponse(id, convertedThreadMessages);
@@ -195,12 +204,12 @@ export class MessageService implements IMessageService {
 
     /** @inheritdoc */
     public findSenderProfilePictureUrl = async (
-        id: string,
-        username: string,
+        _id: string,
+        userId: number,
     ): Promise<string | undefined> => {
         const result = await this.psqlClient.userRepo.findOne({
             attributes: [["profile_image_url", "profileImageUrl"]],
-            where: { username },
+            where: { id: userId },
         });
 
         return result?.profileImageUrl ?? undefined;
@@ -209,19 +218,19 @@ export class MessageService implements IMessageService {
     /** @inheritdoc */
     public getThreadsWithMessages = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<ThreadWithMessages[]>> => {
         const foundThreads: ApiResponse<Thread[]> = await this.getThreads(
             id,
-            username,
+            userId,
         );
 
         const threadMessages: Promise<ApiResponse<ThreadMessage[]>>[] = [];
 
         const creatorProfilePictureUrls: Promise<User | null>[] = [];
         const receiverProfilePictureUrls: Promise<User | null>[] = [];
-        const creatorUsernames: string[] = [];
-        const receiverUsernames: string[] = [];
+        const creatorUsernamePromises: Promise<User | null>[] = [];
+        const receiverUsernamePromises: Promise<User | null>[] = [];
 
         const { data } = foundThreads;
 
@@ -230,27 +239,34 @@ export class MessageService implements IMessageService {
         }
 
         for (const eachFoundThread of data) {
-            if (eachFoundThread.dataValues.id !== undefined) {
+            if (eachFoundThread.id !== undefined) {
                 creatorProfilePictureUrls.push(
                     this.psqlClient.userRepo.findOne({
                         attributes: [["profile_image_url", "profileImageUrl"]],
-                        where: { username: eachFoundThread.creator },
+                        where: { id: eachFoundThread.creator },
                     }),
                 );
                 receiverProfilePictureUrls.push(
                     this.psqlClient.userRepo.findOne({
                         attributes: [["profile_image_url", "profileImageUrl"]],
-                        where: { username: eachFoundThread.receiver },
+                        where: { id: eachFoundThread.receiver },
                     }),
                 );
                 threadMessages.push(
-                    this.getThreadMessages(
-                        id,
-                        eachFoundThread.dataValues.id.toString(),
-                    ),
+                    this.getThreadMessages(id, eachFoundThread.id),
                 );
-                creatorUsernames.push(eachFoundThread.creator);
-                receiverUsernames.push(eachFoundThread.receiver);
+                creatorUsernamePromises.push(
+                    this.psqlClient.userRepo.findOne({
+                        attributes: ["username"],
+                        where: { id: eachFoundThread.creator },
+                    }),
+                );
+                receiverUsernamePromises.push(
+                    this.psqlClient.userRepo.findOne({
+                        attributes: ["username"],
+                        where: { id: eachFoundThread.receiver },
+                    }),
+                );
             }
         }
 
@@ -261,6 +277,12 @@ export class MessageService implements IMessageService {
         const receiverProfilePictures = await Promise.all(
             receiverProfilePictureUrls,
         );
+        const creatorUsernames: string[] = (
+            (await Promise.all(creatorUsernamePromises)) as User[]
+        ).map((eachUser: User) => eachUser.username);
+        const receiverUsernames: string[] = (
+            (await Promise.all(receiverUsernamePromises)) as User[]
+        ).map((eachUser: User) => eachUser.username);
 
         const messagesProfilePictureUrls: Promise<string | undefined>[] = [];
 
@@ -336,15 +358,14 @@ export class MessageService implements IMessageService {
     /** @inheritdoc */
     public pendingDirectMessages = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<DirectMessagePayload[]>> => {
         const pendingMessages = await this.psqlClient.messageRepo.findAll({
-            where: { receiver: username },
+            where: { receiver: userId },
         });
 
         const filteredPendingMessages = pendingMessages.filter(
-            (eachPendingMessage) =>
-                eachPendingMessage.dataValues.thread === null,
+            (eachPendingMessage) => eachPendingMessage.thread === null,
         );
 
         const senderProfilePictures: Promise<User | null>[] = [];
@@ -353,7 +374,7 @@ export class MessageService implements IMessageService {
             senderProfilePictures.push(
                 this.psqlClient.userRepo.findOne({
                     attributes: [["profile_image_url", "profileImageUrl"]],
-                    where: { username: eachPendingMessage.sender },
+                    where: { id: eachPendingMessage.sender },
                 }),
             );
         }
@@ -363,7 +384,7 @@ export class MessageService implements IMessageService {
         );
 
         const filteredAllSenderProfilePictures = allSenderProfilePictures.map(
-            (eachUser) => eachUser?.dataValues.profileImageUrl ?? null,
+            (eachUser) => eachUser?.profileImageUrl ?? null,
         );
 
         const convertedMessages = filteredPendingMessages.map(
@@ -381,12 +402,20 @@ export class MessageService implements IMessageService {
     /** @inheritdoc */
     public createChatRoom = async (
         id: string,
-        createdBy: string,
+        createdBy: number,
         name: string,
         description?: string,
     ): Promise<ApiResponse<number>> => {
+        const createdByUser = await this.psqlClient.userRepo.findOne({
+            where: { id: createdBy },
+        });
+
+        if (createdByUser?.id === undefined) {
+            return new ApiResponse(id, -1);
+        }
+
         const createdChatRoom = await this.psqlClient.chatRoomRepo.create({
-            createdBy,
+            createdBy: createdByUser.id,
             description,
             name,
         });
@@ -422,7 +451,7 @@ export class MessageService implements IMessageService {
         }
 
         const foundUser = await this.psqlClient.userRepo.findOne({
-            where: { username: foundMessage.sender },
+            where: { id: foundMessage.sender },
         });
 
         if (foundUser === null) {
@@ -467,7 +496,7 @@ export class MessageService implements IMessageService {
 
         const numberOfMessages = allFoundMessages.length;
 
-        const usersSet = new Set<string>();
+        const usersSet = new Set<number>();
 
         allFoundMessages.forEach((eachMessage: Message) => {
             if (!usersSet.has(eachMessage.sender)) {
@@ -500,7 +529,7 @@ export class MessageService implements IMessageService {
             senderProfilePicturesPromises.push(
                 this.psqlClient.userRepo.findOne({
                     attributes: [["profile_image_url", "profileImageUrl"]],
-                    where: { username: eachMessage.sender },
+                    where: { id: eachMessage.sender },
                 }),
             );
         });

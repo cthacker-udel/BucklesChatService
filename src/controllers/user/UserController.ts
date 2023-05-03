@@ -231,14 +231,17 @@ export class UserController extends BaseController implements IUserController {
         try {
             id = getIdFromRequest(request);
             const loginPayload = request.body as Partial<DbUser>;
-            const loginResult = await this.userService.login(id, loginPayload);
+            const [loginResult, userId] = await this.userService.login(
+                id,
+                loginPayload,
+            );
 
             response.status(loginResult.data ?? false ? 200 : 400);
             if (loginResult.data !== undefined) {
                 response.cookie(
                     "X-USERNAME",
                     sign(
-                        { username: loginPayload.username } as SessionToken,
+                        { userId } as SessionToken,
                         process.env.TOKEN_SECRET as string,
                     ),
                 );
@@ -266,14 +269,15 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const { username } = request.body as Partial<DbUser>;
+            const userId =
+                this.encryptionService.getUsernameFromRequest(request);
 
-            if (username === undefined) {
+            if (userId === undefined) {
                 throw new Error("Must supply username when removing user");
             }
             const deleteResponse = await this.userService.removeUser(
                 id,
-                username,
+                userId,
             );
             response.status(200);
             response.send(deleteResponse);
@@ -299,12 +303,14 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
+            const userId =
                 this.encryptionService.getUsernameFromRequest(request);
+
             const {
-                username: _,
-                password: __,
-                passwordSalt: ___,
+                id: _,
+                username: __,
+                password: ___,
+                passwordSalt: ____,
                 ...rest
             } = request.body as Partial<DbUser>;
 
@@ -314,7 +320,7 @@ export class UserController extends BaseController implements IUserController {
 
             const editResponse = await this.userService.editUser(
                 id,
-                username,
+                userId,
                 rest,
             );
 
@@ -401,10 +407,11 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
+            const userId =
                 this.encryptionService.getUsernameFromRequest(request);
+
             const userDashboardInformation =
-                await this.userService.dashboardInformation(id, username);
+                await this.userService.dashboardInformation(id, userId);
             response.status(200);
             response.send(userDashboardInformation);
         } catch (error: unknown) {
@@ -465,11 +472,12 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
+            const userId =
                 this.encryptionService.getUsernameFromRequest(request);
+
             const userEditInformation = await this.userService.details(
                 id,
-                username,
+                userId,
             );
             response.status(200);
             response.send(userEditInformation);
@@ -564,7 +572,7 @@ export class UserController extends BaseController implements IUserController {
             id = getIdFromRequest(request);
 
             const confirmationToken = request.query.token;
-            const username =
+            const userId =
                 this.encryptionService.getUsernameFromRequest(request);
 
             if (confirmationToken === undefined) {
@@ -573,15 +581,15 @@ export class UserController extends BaseController implements IUserController {
                 );
             }
 
-            if (username === undefined) {
+            if (userId === undefined) {
                 throw new Error(
-                    "Must supply username in request when trying to confirm email",
+                    "Must supply user id in request when trying to confirm email",
                 );
             }
 
             const validateEmailResponse = await this.userService.confirmEmail(
                 id,
-                username,
+                userId,
                 confirmationToken as string,
             );
 

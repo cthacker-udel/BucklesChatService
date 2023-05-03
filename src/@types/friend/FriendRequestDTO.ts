@@ -5,7 +5,7 @@ export type FriendRequestDTO = {
     /**
      * The target, aka the person receiving the message
      */
-    username: string;
+    username: number;
     /**
      * The custom message appended with the friend request
      */
@@ -13,7 +13,7 @@ export type FriendRequestDTO = {
     /**
      * The person who sent the request
      */
-    sender: string;
+    sender: number;
     /**
      * The profile image of the sender
      */

@@ -8,6 +8,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { Request } from "express";
 import { verify } from "jsonwebtoken";
 import { SessionToken } from "../../@types/encryption/SessionToken";
+import { cookieKey } from "../../constants/cookie/cookieKey";
 
 /**
  * Service involving encryption, whether that be with passwords or generally any values that require encryption
@@ -42,13 +43,13 @@ export class EncryptionService implements IEncryptionService {
 
     /** @inheritdoc */
     public getUsernameFromRequest = (request: Request): number => {
-        const token = request.cookies["X-USERNAME"] as string;
+        const token = request.cookies[cookieKey] as string;
 
         const decoded = verify(
             token,
             process.env.TOKEN_SECRET as string,
         ) as SessionToken;
 
-        return decoded.username;
+        return decoded.userId;
     };
 }

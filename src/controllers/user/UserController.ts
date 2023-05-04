@@ -20,6 +20,7 @@ import { sign } from "jsonwebtoken";
 import { SessionToken } from "../../@types/encryption/SessionToken";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
 import { EmailService } from "../../services/email/EmailService";
+import { cookieKey } from "../../constants/cookie/cookieKey";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -239,7 +240,7 @@ export class UserController extends BaseController implements IUserController {
             response.status(loginResult.data ?? false ? 200 : 400);
             if (loginResult.data !== undefined) {
                 response.cookie(
-                    "X-USERNAME",
+                    cookieKey,
                     sign(
                         { userId } as SessionToken,
                         process.env.TOKEN_SECRET as string,
@@ -506,7 +507,7 @@ export class UserController extends BaseController implements IUserController {
 
             request.session.destroy(() => {});
             response.clearCookie("connect.sid");
-            response.clearCookie("X-USERNAME");
+            response.clearCookie(cookieKey);
             response.status(200);
             response.send({ data: true });
         } catch (error: unknown) {

@@ -345,7 +345,7 @@ export class MessageService implements IMessageService {
         payload: DirectMessagePayload,
     ): Promise<ApiResponse<number>> => {
         const addMessageResult = await this.psqlClient.messageRepo.create({
-            ...payload,
+            ...(payload as DirectMessagePayload & { sender: number }),
         });
 
         if (addMessageResult === null) {

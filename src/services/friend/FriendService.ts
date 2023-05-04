@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/indent -- disabled */
 /* eslint-disable implicit-arrow-linebreak -- disabled */
 
 import { Op } from "@sequelize/core";
@@ -272,36 +273,77 @@ export class FriendService implements IFriendService {
                 where: { username: userId },
             });
 
-        const senderProfilePictures: Promise<User | null>[] = [];
-        foundFriendRequests.forEach((eachFriendRequest: FriendRequest) => {
-            senderProfilePictures.push(
-                this.psqlClient.userRepo.findOne({
-                    attributes: [["profile_image_url", "profileImageUrl"]],
-                    where: { id: eachFriendRequest.sender },
-                }),
+        const senderIds = foundFriendRequests
+            .filter(
+                (eachFriendRequest: FriendRequest | null) =>
+                    eachFriendRequest !== null,
+            )
+            .map(
+                (eachFriendRequest: FriendRequest | null) =>
+                    eachFriendRequest!.sender,
             );
+
+        const foundUsers = await this.psqlClient.userRepo.findAll({
+            attributes: [
+                ["profile_image_url", "profileImageUrl"],
+                "username",
+                "id",
+            ],
+            where: {
+                id: {
+                    [Op.in]: senderIds,
+                },
+            },
         });
 
-        const profilePictureUrls: (string | undefined)[] = (
-            await Promise.all(senderProfilePictures)
-        ).map((eachUser: User | null) => {
-            if (eachUser) {
-                return eachUser.profileImageUrl;
+        const friendRequestLookup: {
+            [key: number]: Partial<FriendRequest> & Partial<User>;
+        } = {};
+
+        foundFriendRequests.forEach((eachFriendRequest) => {
+            friendRequestLookup[eachFriendRequest.sender] = {
+                ...eachFriendRequest,
+            } as Partial<FriendRequest> & Partial<User>;
+        });
+
+        foundUsers.forEach((eachUser) => {
+            if (
+                eachUser?.id !== undefined &&
+                eachUser.id in friendRequestLookup
+            ) {
+                friendRequestLookup[eachUser.id] = {
+                    ...eachUser,
+                } as Partial<FriendRequest> & Partial<User>;
             }
-            return undefined;
         });
 
-        const finalizedRequests = foundFriendRequests.map(
-            (
-                eachFoundFriendRequest: FriendRequest,
-                _index: number,
-            ): FriendRequestDTO => ({
-                ...eachFoundFriendRequest,
-                senderProfileImageUrl: profilePictureUrls[_index],
-            }),
-        );
+        const friendRequestDTOs: FriendRequestDTO[] = foundUsers.map(
+            (eachUser: User | null) => {
+                if (eachUser?.id !== undefined) {
+                    const {
+                        customMessage,
+                        sender,
+                        profileImageUrl: senderProfileImageUrl,
+                        createdAt,
+                    } = friendRequestLookup[eachUser.id] as unknown as Pick<
+                        FriendRequest,
+                        "createdAt" | "customMessage" | "sender"
+                    > &
+                        Pick<User, "profileImageUrl" | "username">;
 
-        return new ApiResponse(id, finalizedRequests);
+                    return {
+                        createdAt,
+                        customMessage,
+                        sender,
+                        senderProfileImageUrl,
+                        username: eachUser.id,
+                    } as FriendRequestDTO;
+                }
+                return undefined;
+            },
+        ) as unknown as FriendRequestDTO[];
+
+        return new ApiResponse(id, friendRequestDTOs);
     };
 
     /** @inheritdoc */

@@ -1,4 +1,5 @@
 export type FriendRequestPayload = {
     customMessage?: string;
-    userTo: number;
+    userFrom?: number;
+    userTo?: number;
 };

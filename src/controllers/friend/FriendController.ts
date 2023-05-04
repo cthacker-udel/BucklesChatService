@@ -184,6 +184,12 @@ export class FriendController
                 );
             }
 
+            if (userTo === undefined) {
+                throw new Error(
+                    "Must supply valid userTo when sending a friend request",
+                );
+            }
+
             const friendRequestResult = await this.friendService.sendRequest(
                 id,
                 userTo,
@@ -249,20 +255,24 @@ export class FriendController
         try {
             id = getIdFromRequest(request);
             const requestPayload = request.body as FriendRequestPayload;
-            if (
-                requestPayload.usernameTo === undefined ||
-                requestPayload.usernameFrom === undefined
-            ) {
-                throw new Error("Must supply both usernames to accept request");
+
+            const userTo =
+                this.encryptionService.getUsernameFromRequest(request);
+
+            if (requestPayload.userFrom === undefined) {
+                throw new Error(
+                    "Must supply username from when accepting request",
+                );
             }
 
-            const { usernameTo, usernameFrom } = requestPayload;
+            const { userFrom } = requestPayload;
 
             const acceptResult = await this.friendService.acceptRequest(
                 id,
-                usernameTo,
-                usernameFrom,
+                userTo,
+                userFrom,
             );
+
             response.status(acceptResult.data === undefined ? 400 : 200);
             response.send(acceptResult);
         } catch (error: unknown) {
@@ -289,21 +299,27 @@ export class FriendController
             id = getIdFromRequest(request);
             const requestPayload = request.body as FriendRequestPayload;
 
-            if (
-                requestPayload.usernameTo === undefined ||
-                requestPayload.usernameFrom === undefined
-            ) {
+            const userTo =
+                this.encryptionService.getUsernameFromRequest(request);
+
+            if (requestPayload.userFrom === undefined) {
                 throw new Error(
-                    "Unable to reject request, invalid usernames sent",
+                    "Unable to reject request, invalid username from sent",
                 );
             }
 
-            const { usernameTo, usernameFrom } = requestPayload;
+            if (userTo === undefined) {
+                throw new Error(
+                    "Must supply valid token when rejecting request",
+                );
+            }
+
+            const { userFrom } = requestPayload;
 
             const rejectResult = await this.friendService.rejectRequest(
                 id,
-                usernameTo,
-                usernameFrom,
+                userTo,
+                userFrom,
             );
             response.status(rejectResult.data === undefined ? 400 : 200);
             response.send(rejectResult);
@@ -376,9 +392,11 @@ export class FriendController
 
             const directMessagePayload = request.body as DirectMessagePayload;
 
+            const sender =
+                this.encryptionService.getUsernameFromRequest(request);
+
             if (
                 directMessagePayload.receiver === undefined ||
-                directMessagePayload.sender === undefined ||
                 directMessagePayload.content === undefined
             ) {
                 throw new Error(
@@ -386,7 +404,13 @@ export class FriendController
                 );
             }
 
-            const { content, receiver, sender } = directMessagePayload;
+            if (sender === undefined) {
+                throw new Error(
+                    "Must supply token when making request to send direct message",
+                );
+            }
+
+            const { content, receiver } = directMessagePayload;
 
             const result = await this.friendService.sendDirectMessage(
                 id,

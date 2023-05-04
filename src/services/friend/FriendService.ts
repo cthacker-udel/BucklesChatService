@@ -231,14 +231,14 @@ export class FriendService implements IFriendService {
     /** @inheritdoc */
     public acceptRequest = async (
         id: string,
-        usernameTo: string,
-        usernameFrom: string,
+        userIdTo: number,
+        userIdFrom: number,
     ): Promise<ApiResponse<boolean>> => {
         const foundUserTo = await this.psqlClient.userRepo.findOne({
-            where: { username: usernameTo },
+            where: { id: userIdTo },
         });
         const foundUserFrom = await this.psqlClient.userRepo.findOne({
-            where: { username: usernameFrom },
+            where: { id: userIdFrom },
         });
 
         if (
@@ -260,7 +260,7 @@ export class FriendService implements IFriendService {
         }
 
         const removeRequest = await this.psqlClient.friendRequestRepo.destroy({
-            where: { sender: usernameFrom, username: usernameTo },
+            where: { sender: userIdFrom, username: userIdTo },
         });
 
         if (removeRequest === 0) {
@@ -279,14 +279,14 @@ export class FriendService implements IFriendService {
     /** @inheritdoc */
     public rejectRequest = async (
         id: string,
-        usernameTo: string,
-        usernameFrom: string,
+        userIdTo: number,
+        userIdFrom: number,
     ): Promise<ApiResponse<boolean>> => {
         const foundUserTo = await this.psqlClient.userRepo.findOne({
-            where: { username: usernameTo },
+            where: { id: userIdTo },
         });
         const foundUserFrom = await this.psqlClient.userRepo.findOne({
-            where: { username: usernameFrom },
+            where: { id: userIdFrom },
         });
 
         if (
@@ -308,7 +308,7 @@ export class FriendService implements IFriendService {
         }
 
         const destroyResult = await this.psqlClient.friendRequestRepo.destroy({
-            where: { sender: usernameFrom, username: usernameTo },
+            where: { sender: userIdFrom, username: userIdTo },
         });
 
         return new ApiResponse<boolean>(id, destroyResult > 0);
@@ -349,11 +349,11 @@ export class FriendService implements IFriendService {
         content: string,
     ): Promise<ApiResponse<boolean>> => {
         const receiverUser = await this.psqlClient.userRepo.findOne({
-            where: { username: receiver },
+            where: { id: receiver },
         });
 
         const senderUser = await this.psqlClient.userRepo.findOne({
-            where: { username: sender },
+            where: { id: sender },
         });
 
         if (receiverUser?.id === undefined || senderUser?.id === undefined) {

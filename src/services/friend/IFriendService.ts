@@ -19,14 +19,14 @@ export interface IFriendService {
      * Attempts to send a friend request from usernameFrom, to usernameTo
      *
      * @param _id - The id to track the transaction
-     * @param _userToId - The user id which is receiving the friend request
+     * @param _usernameTo - The username which is receiving the friend request
      * @param _userFromId - The user id which is sending the friend request
      * @param _customMessage - The custom message which we are sending along with the friend request
      * @returns - Whether or not the friend request was successful
      */
     sendRequest: (
         _id: string,
-        _userToId: number,
+        _usernameTo: string,
         _userFromId: number,
         _customMessage?: string,
     ) => Promise<ApiResponse<boolean>>;

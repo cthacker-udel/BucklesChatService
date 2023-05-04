@@ -173,7 +173,7 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const { customMessage, userTo } =
+            const { customMessage, usernameTo } =
                 request.body as FriendRequestPayload;
             const userFrom =
                 this.encryptionService.getUsernameFromRequest(request);
@@ -184,15 +184,15 @@ export class FriendController
                 );
             }
 
-            if (userTo === undefined) {
+            if (usernameTo === undefined) {
                 throw new Error(
-                    "Must supply valid userTo when sending a friend request",
+                    "Must supply valid username when sending a friend request",
                 );
             }
 
             const friendRequestResult = await this.friendService.sendRequest(
                 id,
-                userTo,
+                usernameTo,
                 userFrom,
                 customMessage,
             );

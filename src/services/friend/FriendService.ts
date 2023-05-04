@@ -79,16 +79,16 @@ export class FriendService implements IFriendService {
     /** @inheritdoc */
     public sendRequest = async (
         id: string,
-        userTo: number,
+        usernameTo: string,
         userFrom: number,
         customMessage?: string,
     ): Promise<ApiResponse<boolean>> => {
-        if (userTo === undefined || userFrom === undefined) {
+        if (usernameTo === undefined || userFrom === undefined) {
             return new ApiResponse<boolean>(id, false);
         }
 
         const foundUserTo = await this.psqlClient.userRepo.findOne({
-            where: { id: userTo },
+            where: { username: usernameTo },
         });
         const foundUserFrom = await this.psqlClient.userRepo.findOne({
             where: { id: userFrom },

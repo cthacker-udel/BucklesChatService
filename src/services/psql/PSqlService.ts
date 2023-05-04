@@ -23,7 +23,7 @@ export class PSqlService {
         this.sqlize = new Sequelize(
             `postgres://${process.env.PSQL_USER}:${process.env.PSQL_PASSWORD}@${process.env.PSQL_HOST}:${process.env.PSQL_PORT}/${process.env.PSQL_DATABASE}`,
             {
-                logging: true,
+                logging: false,
             },
         );
 

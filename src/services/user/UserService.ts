@@ -625,4 +625,59 @@ export class UserService implements IUserService {
 
         return foundUser.username;
     };
+
+    /** @inheritdoc */
+    public updateUserState = async (
+        id: string,
+        userId: number,
+    ): Promise<ApiResponse<boolean>> => {
+        const result = await this.redisService.client.set(
+            `user_state_${userId}`,
+            `${Date.now() * 1000}`,
+            {
+                EX: process.env
+                    .STATE_EXPIRATION_TIME_SECONDS as unknown as number,
+                NX: true,
+            },
+        );
+
+        return new ApiResponse(id, result !== null);
+    };
+
+    /** @inheritdoc */
+    public isUserStateInCache = async (userId: number): Promise<boolean> => {
+        const result = await this.redisService.client.exists(
+            `user_state_${userId}`,
+        );
+
+        return result > 0;
+    };
+
+    /** @inheritdoc */
+    public expireTimeOfUserState = async (
+        id: string,
+        userId: number,
+    ): Promise<ApiResponse<number>> => {
+        const expireTime = await this.redisService.client.expireTime(
+            `user_state_${userId}`,
+        );
+
+        if (expireTime < 0) {
+            throw new Error(
+                expireTime === -1
+                    ? "No expire time set for this entry"
+                    : "The key does not exist",
+            );
+        }
+
+        const setTime = await this.redisService.client.get(
+            `user_state_${userId}`,
+        );
+
+        if (setTime === null) {
+            throw new Error("Key does not exist");
+        }
+
+        return new ApiResponse(id, expireTime - Number.parseInt(setTime, 10));
+    };
 }

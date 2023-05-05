@@ -42,7 +42,7 @@ export class EncryptionService implements IEncryptionService {
     };
 
     /** @inheritdoc */
-    public getUsernameFromRequest = (request: Request): number => {
+    public getUserIdFromRequest = (request: Request): number => {
         const token = request.cookies[cookieKey] as string;
 
         const decoded = verify(

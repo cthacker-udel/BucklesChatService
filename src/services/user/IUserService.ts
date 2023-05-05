@@ -246,4 +246,36 @@ export interface IUserService {
      * @returns - The found username of the user with the matching user id
      */
     findUsernameFromUserId: (_userId: number) => Promise<string | undefined>;
+
+    /**
+     * Updates the user's state within the redis database
+     *
+     * @param _id - The id to track the transaction
+     * @param _userId - The id of the user
+     * @returns Whether the state was successfully updated
+     */
+    updateUserState: (
+        _id: string,
+        _userId: number,
+    ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Checks if the user state is still in the cache
+     *
+     * @param _userId - The user id used to access the key
+     * @returns Whether the state is in the cache or not
+     */
+    isUserStateInCache: (_userId: number) => Promise<boolean>;
+
+    /**
+     * Returns the number of seconds left until the entry expires
+     *
+     * @param _id - The id to track the transaction
+     * @param _userId - The user id used to fetch the expiration time
+     * @returns
+     */
+    expireTimeOfUserState: (
+        _id: string,
+        _userId: number,
+    ) => Promise<ApiResponse<number>>;
 }

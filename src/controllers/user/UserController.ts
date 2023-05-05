@@ -270,8 +270,7 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             if (userId === undefined) {
                 throw new Error("Must supply username when removing user");
@@ -304,8 +303,7 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             const {
                 id: _,
@@ -408,8 +406,7 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             const userDashboardInformation =
                 await this.userService.dashboardInformation(id, userId);
@@ -473,8 +470,7 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             const userEditInformation = await this.userService.details(
                 id,
@@ -573,8 +569,7 @@ export class UserController extends BaseController implements IUserController {
             id = getIdFromRequest(request);
 
             const confirmationToken = request.query.token;
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             if (confirmationToken === undefined) {
                 throw new Error(
@@ -596,6 +591,67 @@ export class UserController extends BaseController implements IUserController {
 
             response.status(200);
             response.send(validateEmailResponse);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public updateUserState = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            const result = await this.userService.updateUserState(id, userId);
+
+            response.status(200);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public pingUserStateExpiration = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            const result = await this.userService.expireTimeOfUserState(
+                id,
+                userId,
+            );
+
+            response.status(200);
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

@@ -137,8 +137,7 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
             const availableFriends = await this.friendService.availableFriends(
                 id,
                 userId,
@@ -170,7 +169,7 @@ export class FriendController
             const { customMessage, userIdTo } =
                 request.body as FriendRequestPayload;
             const userFrom =
-                this.encryptionService.getUsernameFromRequest(request);
+                this.encryptionService.getUserIdFromRequest(request);
 
             if (userFrom === undefined) {
                 throw new Error(
@@ -215,8 +214,7 @@ export class FriendController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             if (userId === undefined) {
                 throw new Error("Must supply username");
@@ -250,8 +248,7 @@ export class FriendController
             id = getIdFromRequest(request);
             const requestPayload = request.body as FriendRequestPayload;
 
-            const userTo =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userTo = this.encryptionService.getUserIdFromRequest(request);
 
             if (requestPayload.userIdFrom === undefined) {
                 throw new Error(
@@ -293,8 +290,7 @@ export class FriendController
             id = getIdFromRequest(request);
             const requestPayload = request.body as FriendRequestPayload;
 
-            const userTo =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userTo = this.encryptionService.getUserIdFromRequest(request);
 
             if (requestPayload.userIdFrom === undefined) {
                 throw new Error(
@@ -342,7 +338,7 @@ export class FriendController
             const requestPayload = request.body as FriendPayload;
 
             const recipient =
-                this.encryptionService.getUsernameFromRequest(request);
+                this.encryptionService.getUserIdFromRequest(request);
 
             if (requestPayload.sender === undefined) {
                 throw new Error(

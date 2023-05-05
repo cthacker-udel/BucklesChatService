@@ -43,5 +43,5 @@ export interface IEncryptionService {
      * @param _request - The request coming from the client, which contains a cookie containing the cookie
      * @returns The user id contained within that token
      */
-    getUsernameFromRequest: (_request: Request) => number;
+    getUserIdFromRequest: (_request: Request) => number;
 }

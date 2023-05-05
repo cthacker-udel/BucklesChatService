@@ -167,7 +167,7 @@ export class MessageController
             }
 
             const creatorId =
-                this.encryptionService.getUsernameFromRequest(request);
+                this.encryptionService.getUserIdFromRequest(request);
 
             if (creatorId === undefined) {
                 throw new Error("Must supply valid token when creating thread");
@@ -214,8 +214,7 @@ export class MessageController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             if (userId === undefined) {
                 throw new Error(
@@ -375,8 +374,7 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
 
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             if (userId === undefined) {
                 throw new Error("Must supply user id to fetch thread data");
@@ -411,7 +409,7 @@ export class MessageController
             id = getIdFromRequest(request);
             const payload = request.body as DirectMessagePayload;
             payload.sender =
-                this.encryptionService.getUsernameFromRequest(request);
+                this.encryptionService.getUserIdFromRequest(request);
 
             if (payload.content === undefined) {
                 throw new Error(
@@ -447,8 +445,7 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
 
-            const userId =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             if (userId === undefined) {
                 throw new Error("Must supply user id in token");
@@ -487,7 +484,7 @@ export class MessageController
             const payload = request.body as Partial<ChatRoom>;
 
             payload.createdBy =
-                this.encryptionService.getUsernameFromRequest(request);
+                this.encryptionService.getUserIdFromRequest(request);
 
             if (payload.createdBy === undefined || payload.name === undefined) {
                 throw new Error(
@@ -677,8 +674,7 @@ export class MessageController
 
             const directMessagePayload = request.body as DirectMessagePayload;
 
-            const sender =
-                this.encryptionService.getUsernameFromRequest(request);
+            const sender = this.encryptionService.getUserIdFromRequest(request);
 
             if (
                 directMessagePayload.receiver === undefined ||

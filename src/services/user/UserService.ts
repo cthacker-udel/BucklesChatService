@@ -356,6 +356,7 @@ export class UserService implements IUserService {
                 ["profile_image_url", "profileImageUrl"],
                 ["created_at", "createdAt"],
                 "username",
+                "id",
             ],
             order: [["username", "ASC"]],
             where: {

@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/indent -- disabled */
 import { FriendRequestDTO } from "../../@types/friend/FriendRequestDTO";
 import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { User } from "../../models/sequelize/User";
 
 export interface IFriendService {
     /**
@@ -19,14 +21,14 @@ export interface IFriendService {
      * Attempts to send a friend request from usernameFrom, to usernameTo
      *
      * @param _id - The id to track the transaction
-     * @param _usernameTo - The username which is receiving the friend request
+     * @param _userToId - The user id which is receiving the friend request
      * @param _userFromId - The user id which is sending the friend request
      * @param _customMessage - The custom message which we are sending along with the friend request
      * @returns - Whether or not the friend request was successful
      */
     sendRequest: (
         _id: string,
-        _usernameTo: string,
+        _userToId: number,
         _userFromId: number,
         _customMessage?: string,
     ) => Promise<ApiResponse<boolean>>;
@@ -41,7 +43,14 @@ export interface IFriendService {
     availableFriends: (
         _id: string,
         _userId: number,
-    ) => Promise<ApiResponse<string[]>>;
+    ) => Promise<
+        ApiResponse<
+            Pick<
+                User,
+                "createdAt" | "handle" | "id" | "profileImageUrl" | "username"
+            >[]
+        >
+    >;
 
     /**
      * Gets all pending friend requests for the user specified
@@ -108,24 +117,6 @@ export interface IFriendService {
         _recipient: number,
         _sender: number,
     ) => Promise<boolean>;
-
-    /**
-     * Sends a user a direct message
-     *
-     * @param _id - The id to track the transaction
-     * @param _receiver - The person who is receiving the message
-     * @param _sender - The person who is sending the message
-     * @param _content - The content of the message
-     * @param _senderProfilePictureUrl - The sender's profile picture URL (optional, undefined if using placeholder pfp)
-     * @returns Whether or not the message was sent
-     */
-    sendDirectMessage: (
-        _id: string,
-        _receiver: number,
-        _sender: number,
-        _content: string,
-        _senderProfilePictureUrl?: string,
-    ) => Promise<ApiResponse<boolean>>;
 
     /**
      * Fetches all pending direct messages for the user matching the username supplied in the `username` parameter

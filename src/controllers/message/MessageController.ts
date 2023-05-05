@@ -131,6 +131,11 @@ export class MessageController
                     handler: this.addMessageToChatRoom,
                     middleware: [authToken],
                 },
+                {
+                    endpoint: "sendDirectMessage",
+                    handler: this.sendDirectMessage,
+                    middleware: [authToken],
+                },
             ],
             BucklesRouteType.POST,
         );
@@ -647,6 +652,62 @@ export class MessageController
 
             response.status(200);
             response.send(allMessages);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public sendDirectMessage = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const directMessagePayload = request.body as DirectMessagePayload;
+
+            const sender =
+                this.encryptionService.getUsernameFromRequest(request);
+
+            if (
+                directMessagePayload.receiver === undefined ||
+                directMessagePayload.content === undefined
+            ) {
+                throw new Error(
+                    "Must provide valid fields when sending direct message",
+                );
+            }
+
+            if (sender === undefined) {
+                throw new Error(
+                    "Must supply token when making request to send direct message",
+                );
+            }
+
+            const { content, receiver } = directMessagePayload;
+
+            const result = await this.messageService.sendDirectMessage(
+                id,
+                receiver,
+                sender,
+                content,
+            );
+
+            response.status(
+                result.data !== undefined && result.data ? 200 : 400,
+            );
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

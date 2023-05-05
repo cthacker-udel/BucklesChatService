@@ -5,7 +5,7 @@ export type FriendRequestDTO = {
     /**
      * The target, aka the person receiving the message
      */
-    username: number;
+    username: string;
     /**
      * The custom message appended with the friend request
      */

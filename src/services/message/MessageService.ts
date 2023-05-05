@@ -52,6 +52,23 @@ export class MessageService implements IMessageService {
     };
 
     /** @inheritdoc */
+    public doesFriendshipExist = async (
+        recipient: number,
+        sender: number,
+    ): Promise<boolean> => {
+        const doesFriendshipExist = await this.psqlClient.friendRepo.findOne({
+            where: {
+                [Op.or]: [
+                    { recipient, sender },
+                    { recipient: sender, sender: recipient },
+                ],
+            },
+        });
+
+        return doesFriendshipExist !== null;
+    };
+
+    /** @inheritdoc */
     public createThread = async (
         id: string,
         creatorUserId: number,
@@ -220,123 +237,126 @@ export class MessageService implements IMessageService {
         id: string,
         userId: number,
     ): Promise<ApiResponse<ThreadWithMessages[]>> => {
-        const foundThreads: ApiResponse<Thread[]> = await this.getThreads(
-            id,
-            userId,
+        const allThreads = await this.psqlClient.threadRepo.findAll({
+            attributes: ["id", "receiver", "creator"],
+            order: [["created_at", "DESC"]],
+            where: {
+                [Op.or]: [{ creator: userId }, { receiver: userId }],
+            },
+        });
+
+        const allUserProfileImagesPromises: Promise<User | null>[] = [];
+        const recordedUserIds = new Set<number>();
+
+        allThreads.forEach((eachThread: Thread | null) => {
+            if (eachThread !== null) {
+                if (!recordedUserIds.has(eachThread.creator)) {
+                    allUserProfileImagesPromises.push(
+                        this.psqlClient.userRepo.findOne({
+                            attributes: [
+                                "id",
+                                ["profile_image_url", "profileImageUrl"],
+                                "username",
+                            ],
+                            where: { id: eachThread.creator },
+                        }),
+                    );
+                    recordedUserIds.add(eachThread.creator);
+                }
+                if (!recordedUserIds.has(eachThread.receiver)) {
+                    allUserProfileImagesPromises.push(
+                        this.psqlClient.userRepo.findOne({
+                            attributes: [
+                                "id",
+                                ["profile_image_url", "profileImageUrl"],
+                                "username",
+                            ],
+                            where: { id: eachThread.receiver },
+                        }),
+                    );
+                }
+            }
+        });
+
+        const allUserProfileImages = await Promise.all(
+            allUserProfileImagesPromises,
         );
 
-        const threadMessages: Promise<ApiResponse<ThreadMessage[]>>[] = [];
+        const allUserProfileImagesMap: { [key: number]: string | undefined } =
+            {};
 
-        const creatorProfilePictureUrls: Promise<User | null>[] = [];
-        const receiverProfilePictureUrls: Promise<User | null>[] = [];
-        const creatorUsernamePromises: Promise<User | null>[] = [];
-        const receiverUsernamePromises: Promise<User | null>[] = [];
+        const allUserUsernameMap: { [key: number]: string } = {};
 
-        const { data } = foundThreads;
+        allUserProfileImages.forEach((eachUser: User | null) => {
+            if (eachUser !== null) {
+                allUserProfileImagesMap[eachUser.id as number] =
+                    eachUser.profileImageUrl;
+                allUserUsernameMap[eachUser.id as number] = eachUser.username;
+            }
+        });
 
-        if (data === undefined) {
-            return new ApiResponse(id, [] as ThreadWithMessages[]);
-        }
+        const messages: Promise<Message[]>[] = [];
 
-        for (const eachFoundThread of data) {
-            if (eachFoundThread.id !== undefined) {
-                creatorProfilePictureUrls.push(
-                    this.psqlClient.userRepo.findOne({
-                        attributes: [["profile_image_url", "profileImageUrl"]],
-                        where: { id: eachFoundThread.creator },
-                    }),
-                );
-                receiverProfilePictureUrls.push(
-                    this.psqlClient.userRepo.findOne({
-                        attributes: [["profile_image_url", "profileImageUrl"]],
-                        where: { id: eachFoundThread.receiver },
-                    }),
-                );
-                threadMessages.push(
-                    this.getThreadMessages(id, eachFoundThread.id),
-                );
-                creatorUsernamePromises.push(
-                    this.psqlClient.userRepo.findOne({
-                        attributes: ["username"],
-                        where: { id: eachFoundThread.creator },
-                    }),
-                );
-                receiverUsernamePromises.push(
-                    this.psqlClient.userRepo.findOne({
-                        attributes: ["username"],
-                        where: { id: eachFoundThread.receiver },
+        allThreads.forEach((eachThread: Thread | null) => {
+            if (eachThread !== null) {
+                messages.push(
+                    this.psqlClient.messageRepo.findAll({
+                        attributes: [
+                            "sender",
+                            "receiver",
+                            "content",
+                            "thread",
+                            ["thread_order", "threadOrder"],
+                            ["created_at", "createdAt"],
+                            ["updated_at", "updatedAt"],
+                        ],
+                        order: [
+                            ["thread_order", "ASC"],
+                            ["thread", "ASC"],
+                        ],
+                        where: {
+                            thread: eachThread.id,
+                        },
                     }),
                 );
             }
-        }
+        });
 
-        const foundMessages = await Promise.all(threadMessages);
-        const creatorProfilePictures = await Promise.all(
-            creatorProfilePictureUrls,
-        );
-        const receiverProfilePictures = await Promise.all(
-            receiverProfilePictureUrls,
-        );
-        const creatorUsernames: string[] = (
-            (await Promise.all(creatorUsernamePromises)) as User[]
-        ).map((eachUser: User) => eachUser.username);
-        const receiverUsernames: string[] = (
-            (await Promise.all(receiverUsernamePromises)) as User[]
-        ).map((eachUser: User) => eachUser.username);
+        const allThreadsMessages = await Promise.all(messages);
 
-        const messagesProfilePictureUrls: Promise<string | undefined>[] = [];
+        const amalgamatedThreadsWithMessages: ThreadWithMessages[] = new Array(
+            allThreadsMessages.length,
+        )
+            .fill(0)
+            .map(
+                (_, index: number) =>
+                    ({
+                        creator: allThreads[index].creator,
+                        creatorProfilePictureUrl:
+                            allUserProfileImagesMap[allThreads[index].creator],
+                        creatorUsername:
+                            allUserUsernameMap[allThreads[index].creator],
+                        messages: allThreadsMessages[index].map(
+                            (eachMessage: Message | null) =>
+                                ({
+                                    ...eachMessage?.dataValues,
+                                    senderProfilePictureUrl:
+                                        allUserProfileImagesMap[
+                                            eachMessage!.sender
+                                        ],
+                                    thread: allThreads[index].id,
+                                } as ThreadMessage),
+                        ),
+                        receiver: allThreads[index].receiver,
+                        receiverProfilePictureUrl:
+                            allUserProfileImagesMap[allThreads[index].receiver],
+                        receiverUsername:
+                            allUserUsernameMap[allThreads[index].receiver],
+                        threadId: allThreads[index].id,
+                    } as ThreadWithMessages),
+            );
 
-        foundMessages.forEach(
-            (eachFoundMessage: ApiResponse<ThreadMessage[]>) => {
-                const { data: threadMessages } = eachFoundMessage;
-                if (threadMessages !== undefined) {
-                    threadMessages?.forEach((eachMessage: ThreadMessage) => {
-                        messagesProfilePictureUrls.push(
-                            this.findSenderProfilePictureUrl(
-                                id,
-                                eachMessage.sender,
-                            ),
-                        );
-                    });
-                }
-            },
-        );
-
-        const allMessagesSenderPfps = await Promise.all(
-            messagesProfilePictureUrls,
-        );
-
-        let idx = 0;
-
-        const convertedMessages: ThreadWithMessages[] = foundMessages.map(
-            (eachFoundMessage: ApiResponse<ThreadMessage[]>, index: number) => {
-                const { data: foundMessages } = eachFoundMessage;
-                return {
-                    creator: creatorUsernames[index],
-                    creatorProfilePictureUrl:
-                        creatorProfilePictures[index]?.dataValues
-                            .profileImageUrl ?? "",
-                    messages: [
-                        ...(foundMessages as unknown as ThreadMessage[]),
-                    ].map((eachFoundMessage: ThreadMessage) => {
-                        const currIndex = idx;
-                        idx += 1;
-                        return {
-                            ...eachFoundMessage,
-                            senderProfilePictureUrl:
-                                allMessagesSenderPfps[currIndex],
-                        };
-                    }),
-                    receiver: receiverUsernames[index],
-                    receiverProfilePictureUrl:
-                        receiverProfilePictures[index]?.dataValues
-                            .profileImageUrl ?? "",
-                    threadId: data[index].id as unknown as number,
-                };
-            },
-        );
-
-        return new ApiResponse(id, convertedMessages);
+        return new ApiResponse(id, amalgamatedThreadsWithMessages);
     };
 
     /** @inheritdoc */
@@ -557,5 +577,63 @@ export class MessageService implements IMessageService {
         );
 
         return new ApiResponse(id, convertedMessages);
+    };
+
+    /** @inheritdoc */
+    public sendDirectMessage = async (
+        id: string,
+        receiver: number,
+        sender: number,
+        content: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const receiverUser = await this.psqlClient.userRepo.findOne({
+            where: { id: receiver },
+        });
+
+        const senderUser = await this.psqlClient.userRepo.findOne({
+            where: { id: sender },
+        });
+
+        if (receiverUser?.id === undefined || senderUser?.id === undefined) {
+            return new ApiResponse(id, false);
+        }
+
+        const doesFriendshipExist = await this.doesFriendshipExist(
+            receiver,
+            sender,
+        );
+
+        if (!doesFriendshipExist) {
+            throw new Error("Sender is not friends with receiver");
+        }
+
+        const [createdOrFoundThread, _threadCreated] =
+            await this.psqlClient.threadRepo.findOrCreate({
+                defaults: {
+                    creator: senderUser.id,
+                    receiver: receiverUser.id,
+                },
+                where: {
+                    [Op.or]: [
+                        { creator: senderUser.id, receiver: receiverUser.id },
+                        { creator: receiverUser.id, receiver: senderUser.id },
+                    ],
+                },
+            });
+
+        const messageResult = await this.psqlClient.messageRepo.create({
+            content,
+            receiver: receiverUser.id,
+            sender: senderUser.id,
+            thread: createdOrFoundThread.id,
+        });
+
+        await this.addMessageToThread(
+            id,
+            messageResult.id as number,
+            createdOrFoundThread.id as number,
+        );
+
+        return new ApiResponse<boolean>(id, Boolean(messageResult));
     };
 }

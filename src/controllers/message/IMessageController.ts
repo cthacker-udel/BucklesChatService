@@ -140,4 +140,16 @@ export interface IMessageController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * Sends a direct message to a user
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns Whether or not the friend was sent the message successfully
+     */
+    sendDirectMessage: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
 }

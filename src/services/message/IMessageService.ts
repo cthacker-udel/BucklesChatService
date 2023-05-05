@@ -29,6 +29,18 @@ export interface IMessageService {
     doesThreadExistIdOnly: (_threadId: number) => Promise<boolean>;
 
     /**
+     * Checks if a friendship exists in the database
+     *
+     * @param _recipient - The user whom received + accepted the friend request
+     * @param _sender - The user whom sent the friend request
+     * @returns - Whether or not the friendship exists in the database
+     */
+    doesFriendshipExist: (
+        _recipient: number,
+        _sender: number,
+    ) => Promise<boolean>;
+
+    /**
      * Creates a new thread in the database, if one already exists, then returns false
      *
      * @param _id - The id to track the transaction
@@ -201,4 +213,22 @@ export interface IMessageService {
         _id: string,
         _chatRoomId: number,
     ) => Promise<ApiResponse<ChatRoomMessage[]>>;
+
+    /**
+     * Sends a user a direct message
+     *
+     * @param _id - The id to track the transaction
+     * @param _receiver - The person who is receiving the message
+     * @param _sender - The person who is sending the message
+     * @param _content - The content of the message
+     * @param _senderProfilePictureUrl - The sender's profile picture URL (optional, undefined if using placeholder pfp)
+     * @returns Whether or not the message was sent
+     */
+    sendDirectMessage: (
+        _id: string,
+        _receiver: number,
+        _sender: number,
+        _content: string,
+        _senderProfilePictureUrl?: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

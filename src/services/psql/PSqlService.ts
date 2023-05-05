@@ -218,9 +218,6 @@ export class PSqlService {
                         model: User,
                     },
                     type: DataTypes.INTEGER,
-                    validate: {
-                        isAlpha: true,
-                    },
                 },
                 sender: {
                     allowNull: false,
@@ -229,9 +226,6 @@ export class PSqlService {
                         model: User,
                     },
                     type: DataTypes.INTEGER,
-                    validate: {
-                        isAlpha: true,
-                    },
                 },
                 updatedAt: {
                     allowNull: false,

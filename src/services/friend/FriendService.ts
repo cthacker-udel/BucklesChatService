@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function -- disabled */
 /* eslint-disable @typescript-eslint/indent -- disabled */
 /* eslint-disable implicit-arrow-linebreak -- disabled */
 
@@ -80,16 +81,16 @@ export class FriendService implements IFriendService {
     /** @inheritdoc */
     public sendRequest = async (
         id: string,
-        usernameTo: string,
+        userIdTo: number,
         userFrom: number,
         customMessage?: string,
     ): Promise<ApiResponse<boolean>> => {
-        if (usernameTo === undefined || userFrom === undefined) {
+        if (userIdTo === undefined || userFrom === undefined) {
             return new ApiResponse<boolean>(id, false);
         }
 
         const foundUserTo = await this.psqlClient.userRepo.findOne({
-            where: { username: usernameTo },
+            where: { id: userIdTo },
         });
         const foundUserFrom = await this.psqlClient.userRepo.findOne({
             where: { id: userFrom },
@@ -121,9 +122,26 @@ export class FriendService implements IFriendService {
     public availableFriends = async (
         id: string,
         userId: number,
-    ): Promise<ApiResponse<string[]>> => {
+    ): Promise<
+        ApiResponse<
+            Pick<
+                User,
+                "createdAt" | "handle" | "id" | "profileImageUrl" | "username"
+            >[]
+        >
+    > => {
         if (userId === undefined) {
-            return new ApiResponse(id, [] as string[]);
+            return new ApiResponse(
+                id,
+                [] as Pick<
+                    User,
+                    | "createdAt"
+                    | "handle"
+                    | "id"
+                    | "profileImageUrl"
+                    | "username"
+                >[],
+            );
         }
 
         const foundUser = await this.psqlClient.userRepo.findOne({
@@ -131,95 +149,201 @@ export class FriendService implements IFriendService {
         });
 
         if (foundUser === null) {
-            return new ApiResponse(id, [] as string[]);
+            return new ApiResponse(
+                id,
+                [] as Pick<
+                    User,
+                    | "createdAt"
+                    | "handle"
+                    | "id"
+                    | "profileImageUrl"
+                    | "username"
+                >[],
+            );
         }
 
-        const availableFriends = await this.psqlClient.friendRepo.findAll({
+        // const availableFriends = await this.psqlClient.friendRepo.findAll({
+        //     attributes: ["recipient", "sender"],
+        //     where: {
+        //         [Op.not]: {
+        //             [Op.or]: [
+        //                 {
+        //                     // p --> q
+        //                     [Op.and]: [
+        //                         { recipient: userId },
+        //                         { [Op.not]: { sender: userId } },
+        //                     ],
+        //                 },
+        //                 {
+        //                     // ~p --> ~q
+        //                     [Op.and]: [
+        //                         { [Op.not]: { recipient: userId } },
+        //                         { [Op.not]: { [Op.not]: { sender: userId } } },
+        //                     ],
+        //                 },
+        //             ],
+        //         },
+        //     },
+        // });
+
+        const notAvailableFriends = await this.psqlClient.friendRepo.findAll({
             attributes: ["recipient", "sender"],
             where: {
-                [Op.not]: {
-                    [Op.or]: [
-                        {
-                            // p --> q
-                            [Op.and]: [
-                                { recipient: userId },
-                                { [Op.not]: { sender: userId } },
-                            ],
-                        },
-                        {
-                            // ~p --> ~q
-                            [Op.and]: [
-                                { [Op.not]: { recipient: userId } },
-                                { [Op.not]: { [Op.not]: { sender: userId } } },
-                            ],
-                        },
-                    ],
-                },
+                [Op.or]: [
+                    {
+                        // p --> q
+                        [Op.and]: [
+                            { recipient: userId },
+                            { [Op.not]: { sender: userId } },
+                        ],
+                    },
+                    {
+                        // ~p --> ~q
+                        [Op.and]: [
+                            { [Op.not]: { recipient: userId } },
+                            { [Op.not]: { [Op.not]: { sender: userId } } },
+                        ],
+                    },
+                ],
             },
         });
 
-        const availableFriendRequests =
+        // const availableFriendRequests =
+        //     await this.psqlClient.friendRequestRepo.findAll({
+        //         attributes: ["username", "sender"],
+        //         where: {
+        //             [Op.not]: {
+        //                 [Op.or]: [
+        //                     {
+        //                         // p --> q
+        //                         [Op.and]: [
+        //                             { username: userId },
+        //                             { [Op.not]: { sender: userId } },
+        //                         ],
+        //                     },
+        //                     {
+        //                         // ~p --> ~q
+        //                         [Op.and]: [
+        //                             { [Op.not]: { username: userId } },
+        //                             {
+        //                                 [Op.not]: {
+        //                                     [Op.not]: { sender: userId },
+        //                                 },
+        //                             },
+        //                         ],
+        //                     },
+        //                 ],
+        //             },
+        //         },
+        //     });
+
+        const notAvailableFriendRequests =
             await this.psqlClient.friendRequestRepo.findAll({
                 attributes: ["username", "sender"],
                 where: {
-                    [Op.not]: {
-                        [Op.or]: [
-                            {
-                                // p --> q
-                                [Op.and]: [
-                                    { username: userId },
-                                    { [Op.not]: { sender: userId } },
-                                ],
-                            },
-                            {
-                                // ~p --> ~q
-                                [Op.and]: [
-                                    { [Op.not]: { username: userId } },
-                                    {
-                                        [Op.not]: {
-                                            [Op.not]: { sender: userId },
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
-            });
-
-        const availableBlockUsers = await this.psqlClient.blockRepo.findAll({
-            attributes: ["blocked", "sender"],
-            where: {
-                [Op.not]: {
                     [Op.or]: [
                         {
                             // p --> q
                             [Op.and]: [
-                                { blocked: userId },
+                                { username: userId },
                                 { [Op.not]: { sender: userId } },
                             ],
                         },
                         {
                             // ~p --> ~q
                             [Op.and]: [
-                                { [Op.not]: { blocked: userId } },
-                                { [Op.not]: { [Op.not]: { sender: userId } } },
+                                { [Op.not]: { username: userId } },
+                                {
+                                    [Op.not]: {
+                                        [Op.not]: { sender: userId },
+                                    },
+                                },
                             ],
                         },
                     ],
                 },
+            });
+
+        // const availableBlockUsers = await this.psqlClient.blockRepo.findAll({
+        //     attributes: ["blocked", "sender"],
+        //     where: {
+        //         [Op.not]: {
+        //             [Op.or]: [
+        //                 {
+        //                     // p --> q
+        //                     [Op.and]: [
+        //                         { blocked: userId },
+        //                         { [Op.not]: { sender: userId } },
+        //                     ],
+        //                 },
+        //                 {
+        //                     // ~p --> ~q
+        //                     [Op.and]: [
+        //                         { [Op.not]: { blocked: userId } },
+        //                         { [Op.not]: { [Op.not]: { sender: userId } } },
+        //                     ],
+        //                 },
+        //             ],
+        //         },
+        //     },
+        // });
+
+        const notAvailableBlockUsers = await this.psqlClient.blockRepo.findAll({
+            attributes: ["blocked", "sender"],
+            where: {
+                [Op.or]: [
+                    {
+                        // p --> q
+                        [Op.and]: [
+                            { blocked: userId },
+                            { [Op.not]: { sender: userId } },
+                        ],
+                    },
+                    {
+                        // ~p --> ~q
+                        [Op.and]: [
+                            { [Op.not]: { blocked: userId } },
+                            { [Op.not]: { [Op.not]: { sender: userId } } },
+                        ],
+                    },
+                ],
             },
         });
 
-        const userIdsSet = [
-            ...new Set<number>(
-                availableBlockUsers
+        // const userIdsSet = new Set<number>(
+        //     ...[
+        //         availableBlockUsers
+        //             .map((eachBlockedUser: Block) => [
+        //                 eachBlockedUser.blocked,
+        //                 eachBlockedUser.sender,
+        //             ])
+        //             .concat(
+        //                 availableFriendRequests.map(
+        //                     (eachFriendRequest: FriendRequest) => [
+        //                         eachFriendRequest.sender,
+        //                         eachFriendRequest.username,
+        //                     ],
+        //                 ),
+        //             )
+        //             .concat(
+        //                 availableFriends.map((eachAvailableFriend: Friend) => [
+        //                     eachAvailableFriend.sender,
+        //                     eachAvailableFriend.recipient,
+        //                 ]),
+        //             )
+        //             .flat(3),
+        //     ],
+        // );
+
+        const notAvailableUserIdsSet = new Set<number>(
+            ...[
+                notAvailableBlockUsers
                     .map((eachBlockedUser: Block) => [
                         eachBlockedUser.blocked,
                         eachBlockedUser.sender,
                     ])
                     .concat(
-                        availableFriendRequests.map(
+                        notAvailableFriendRequests.map(
                             (eachFriendRequest: FriendRequest) => [
                                 eachFriendRequest.sender,
                                 eachFriendRequest.username,
@@ -227,34 +351,69 @@ export class FriendService implements IFriendService {
                         ),
                     )
                     .concat(
-                        availableFriends.map((eachAvailableFriend: Friend) => [
-                            eachAvailableFriend.sender,
-                            eachAvailableFriend.recipient,
-                        ]),
+                        notAvailableFriends.map(
+                            (eachAvailableFriend: Friend) => [
+                                eachAvailableFriend.sender,
+                                eachAvailableFriend.recipient,
+                            ],
+                        ),
                     )
                     .flat(3),
-            ),
-        ];
+            ],
+        );
 
-        const usernameLookups: Promise<User | null>[] = [];
-        userIdsSet.forEach((eachUserId: number) => {
-            usernameLookups.push(
-                this.psqlClient.userRepo.findOne({
-                    attributes: ["username"],
-                    where: { id: eachUserId },
-                }),
+        const allValidUserUsernames = (
+            await this.psqlClient.userRepo.findAll({
+                attributes: [
+                    "id",
+                    "username",
+                    "handle",
+                    ["created_at", "createdAt"],
+                    ["profile_image_url", "profileImageUrl"],
+                ],
+                order: [["username", "ASC"]],
+                where: {
+                    [Op.not]: { id: userId },
+                },
+            })
+        )
+            .filter(
+                (eachUser: User | null) =>
+                    !notAvailableUserIdsSet.has(eachUser!.id as number),
+            )
+            .map(
+                (eachUser: User | null) =>
+                    ({
+                        ...eachUser?.dataValues,
+                    } as Pick<
+                        User,
+                        | "createdAt"
+                        | "handle"
+                        | "id"
+                        | "profileImageUrl"
+                        | "username"
+                    >),
             );
-        });
 
-        const usernameLookupsResult = await Promise.all(usernameLookups);
+        // const usernameLookups: Promise<User | null>[] = [];
+        // userIdsSet.forEach((eachUserId: number) => {
+        //     usernameLookups.push(
+        //         this.psqlClient.userRepo.findOne({
+        //             attributes: ["username"],
+        //             where: { id: eachUserId },
+        //         }),
+        //     );
+        // });
 
-        const foundUsernames = usernameLookupsResult
-            .filter((eachUser: User | null) => eachUser !== null)
-            .map((eachUser: User | null) => eachUser!.username);
+        // const usernameLookupsResult = await Promise.all(usernameLookups);
 
-        foundUsernames.sort();
+        // const foundUsernames = usernameLookupsResult
+        //     .filter((eachUser: User | null) => eachUser !== null)
+        //     .map((eachUser: User | null) => eachUser!.username);
 
-        return new ApiResponse(id, foundUsernames);
+        // foundUsernames.sort();
+
+        return new ApiResponse(id, allValidUserUsernames);
     };
 
     /** @inheritdoc */
@@ -302,7 +461,7 @@ export class FriendService implements IFriendService {
 
         foundFriendRequests.forEach((eachFriendRequest) => {
             friendRequestLookup[eachFriendRequest.sender] = {
-                ...eachFriendRequest,
+                ...eachFriendRequest.dataValues,
             } as Partial<FriendRequest> & Partial<User>;
         });
 
@@ -312,7 +471,8 @@ export class FriendService implements IFriendService {
                 eachUser.id in friendRequestLookup
             ) {
                 friendRequestLookup[eachUser.id] = {
-                    ...eachUser,
+                    ...friendRequestLookup[eachUser.id],
+                    ...eachUser.dataValues,
                 } as Partial<FriendRequest> & Partial<User>;
             }
         });
@@ -325,9 +485,10 @@ export class FriendService implements IFriendService {
                         sender,
                         profileImageUrl: senderProfileImageUrl,
                         createdAt,
+                        username,
                     } = friendRequestLookup[eachUser.id] as unknown as Pick<
                         FriendRequest,
-                        "createdAt" | "customMessage" | "sender"
+                        "createdAt" | "customMessage" | "id" | "sender"
                     > &
                         Pick<User, "profileImageUrl" | "username">;
 
@@ -336,7 +497,7 @@ export class FriendService implements IFriendService {
                         customMessage,
                         sender,
                         senderProfileImageUrl,
-                        username: eachUser.id,
+                        username,
                     } as FriendRequestDTO;
                 }
                 return undefined;
@@ -457,43 +618,6 @@ export class FriendService implements IFriendService {
         });
 
         return new ApiResponse<boolean>(id, removeResult > 0);
-    };
-
-    /** @inheritdoc */
-    public sendDirectMessage = async (
-        id: string,
-        receiver: number,
-        sender: number,
-        content: string,
-    ): Promise<ApiResponse<boolean>> => {
-        const receiverUser = await this.psqlClient.userRepo.findOne({
-            where: { id: receiver },
-        });
-
-        const senderUser = await this.psqlClient.userRepo.findOne({
-            where: { id: sender },
-        });
-
-        if (receiverUser?.id === undefined || senderUser?.id === undefined) {
-            return new ApiResponse(id, false);
-        }
-
-        const doesFriendshipExist = await this.doesFriendshipExist(
-            receiver,
-            sender,
-        );
-
-        if (!doesFriendshipExist) {
-            throw new Error("Sender is not friends with receiver");
-        }
-
-        const messageResult = await this.psqlClient.messageRepo.create({
-            content,
-            receiver: receiverUser.id,
-            sender: senderUser.id,
-        });
-
-        return new ApiResponse<boolean>(id, Boolean(messageResult));
     };
 
     /** @inheritdoc */

@@ -130,6 +130,10 @@ export class PSqlService {
                         isUrl: true,
                     },
                 },
+                status: {
+                    allowNull: true,
+                    type: DataTypes.SMALLINT,
+                },
                 updatedAt: {
                     allowNull: false,
                     type: DataTypes.DATE,

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/indent -- disabled */
+import { ActiveStatus } from "../../@types/user/ActiveStatus";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { DbUser } from "../../@types/user/DbUser";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
@@ -248,13 +249,13 @@ export interface IUserService {
     findUsernameFromUserId: (_userId: number) => Promise<string | undefined>;
 
     /**
-     * Updates the user's state within the redis database
+     * Refreshes the user's state within the redis database
      *
      * @param _id - The id to track the transaction
      * @param _userId - The id of the user
      * @returns Whether the state was successfully updated
      */
-    updateUserState: (
+    refreshUserState: (
         _id: string,
         _userId: number,
     ) => Promise<ApiResponse<boolean>>;
@@ -277,7 +278,7 @@ export interface IUserService {
     expireTimeOfUserState: (
         _id: string,
         _userId: number,
-    ) => Promise<ApiResponse<number>>;
+    ) => Promise<ApiResponse<ActiveStatus>>;
 
     /**
      * Clears the user state from the redis database (for example when the user exits the tab)

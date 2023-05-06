@@ -14,6 +14,7 @@ import { User } from "../../models/sequelize/User";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { EmailService } from "../email/EmailService";
 import { Friend } from "../../models/sequelize/Friend";
+import { ActiveStatus, ActiveStatusType } from "../../@types/user/ActiveStatus";
 
 export class UserService implements IUserService {
     /**
@@ -627,7 +628,7 @@ export class UserService implements IUserService {
     };
 
     /** @inheritdoc */
-    public updateUserState = async (
+    public refreshUserState = async (
         id: string,
         userId: number,
     ): Promise<ApiResponse<boolean>> => {
@@ -657,7 +658,7 @@ export class UserService implements IUserService {
     public expireTimeOfUserState = async (
         id: string,
         userId: number,
-    ): Promise<ApiResponse<number>> => {
+    ): Promise<ApiResponse<ActiveStatus>> => {
         const expireTime = await this.redisService.client.expireTime(
             `user_state_${userId}`,
         );
@@ -678,7 +679,29 @@ export class UserService implements IUserService {
             throw new Error("Key does not exist");
         }
 
-        return new ApiResponse(id, expireTime - Number.parseInt(setTime, 10));
+        const timeLeft = expireTime - Number.parseInt(setTime, 10);
+
+        const isAway =
+            timeLeft <
+                Number.parseInt(
+                    process.env.STATE_EXPIRATION_AWAY_THRESHOLD as string,
+                    10,
+                ) && timeLeft > 0;
+
+        const currentStatus =
+            timeLeft <= 0 ? ActiveStatusType.OFFLINE : ActiveStatusType.ONLINE;
+
+        await this.psqlClient.userRepo.update(
+            {
+                status: isAway ? ActiveStatusType.AWAY : currentStatus,
+            },
+            { where: { id: userId } },
+        );
+
+        return new ApiResponse(id, {
+            status: isAway ? ActiveStatusType.AWAY : currentStatus,
+            timeLeft,
+        });
     };
 
     /** @inheritdoc */

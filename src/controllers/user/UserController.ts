@@ -146,8 +146,8 @@ export class UserController extends BaseController implements IUserController {
             [
                 { endpoint: "edit", handler: this.editUser },
                 {
-                    endpoint: "updateUserState",
-                    handler: this.updateUserState,
+                    endpoint: "refreshUserState",
+                    handler: this.refreshUserState,
                     middleware: [authToken],
                 },
             ],
@@ -625,7 +625,7 @@ export class UserController extends BaseController implements IUserController {
     };
 
     /** @inheritdoc */
-    public updateUserState = async (
+    public refreshUserState = async (
         request: Request,
         response: Response,
     ): Promise<void> => {
@@ -635,7 +635,7 @@ export class UserController extends BaseController implements IUserController {
 
             const userId = this.encryptionService.getUserIdFromRequest(request);
 
-            const result = await this.userService.updateUserState(id, userId);
+            const result = await this.userService.refreshUserState(id, userId);
 
             response.status(200);
             response.send(result);

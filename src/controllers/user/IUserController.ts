@@ -132,13 +132,13 @@ export interface IUserController {
     confirmEmail: (_request: Request, _response: Response) => Promise<void>;
 
     /**
-     * Updates the current logged in user's status
+     * Refreshes the current logged in user's status
      *
      * @param _request - The client request
      * @param _response - The client response
      * @returns 200 if status successfully updated in redis database
      */
-    updateUserState: (_request: Request, _response: Response) => Promise<void>;
+    refreshUserState: (_request: Request, _response: Response) => Promise<void>;
 
     /**
      * Gets the current time of the user's state expiration entry in the redis database

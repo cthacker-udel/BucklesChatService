@@ -115,6 +115,11 @@ export class UserController extends BaseController implements IUserController {
                     handler: this.confirmEmail,
                     middleware: [authToken],
                 },
+                {
+                    endpoint: "pingUserStateExpiration",
+                    handler: this.pingUserStateExpiration,
+                    middleware: [authToken],
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -127,11 +132,25 @@ export class UserController extends BaseController implements IUserController {
             BucklesRouteType.POST,
         );
         super.addRoutes(
-            [{ endpoint: "remove", handler: this.removeUser }],
+            [
+                { endpoint: "remove", handler: this.removeUser },
+                {
+                    endpoint: "clearUserState",
+                    handler: this.clearUserState,
+                    middleware: [authToken],
+                },
+            ],
             BucklesRouteType.DELETE,
         );
         super.addRoutes(
-            [{ endpoint: "edit", handler: this.editUser }],
+            [
+                { endpoint: "edit", handler: this.editUser },
+                {
+                    endpoint: "updateUserState",
+                    handler: this.updateUserState,
+                    middleware: [authToken],
+                },
+            ],
             BucklesRouteType.PUT,
         );
 
@@ -649,6 +668,35 @@ export class UserController extends BaseController implements IUserController {
                 id,
                 userId,
             );
+
+            response.status(200);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public clearUserState = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            const result = await this.userService.clearUserState(id, userId);
 
             response.status(200);
             response.send(result);

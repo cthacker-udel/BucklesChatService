@@ -680,4 +680,20 @@ export class UserService implements IUserService {
 
         return new ApiResponse(id, expireTime - Number.parseInt(setTime, 10));
     };
+
+    /** @inheritdoc */
+    public clearUserState = async (
+        id: string,
+        userId: number,
+    ): Promise<ApiResponse<boolean>> => {
+        const removalResult = await this.redisService.client.del(
+            `user_state_${userId}`,
+        );
+
+        if (removalResult === 0) {
+            return new ApiResponse(id, false);
+        }
+
+        return new ApiResponse(id, true);
+    };
 }

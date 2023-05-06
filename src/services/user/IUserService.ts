@@ -278,4 +278,16 @@ export interface IUserService {
         _id: string,
         _userId: number,
     ) => Promise<ApiResponse<number>>;
+
+    /**
+     * Clears the user state from the redis database (for example when the user exits the tab)
+     *
+     * @param _id - The id to track the transaction
+     * @param _userId - The id of the user to clear the user state from the redis database
+     * @returns Whether the state was removed from the redis database successfully
+     */
+    clearUserState: (
+        _id: string,
+        _userId: number,
+    ) => Promise<ApiResponse<boolean>>;
 }

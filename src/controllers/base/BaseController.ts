@@ -43,6 +43,7 @@ export class BaseController implements IBaseController {
             "2": "put",
             "3": "delete",
             "4": "options",
+            "5": "patch",
         };
 
     /**
@@ -62,12 +63,7 @@ export class BaseController implements IBaseController {
         this.statusFunction = _statusFunction ?? (() => {});
     }
 
-    /**
-     * Sets the status function of the BaseController instance
-     *
-     * @param _statusFunction - The status function used to determine if the services are online
-     * @returns The modified instance
-     */
+    /** @inheritdoc */
     public setStatusFunction(_statusFunction: () => void): IBaseController {
         this.statusFunction = _statusFunction;
         return this;

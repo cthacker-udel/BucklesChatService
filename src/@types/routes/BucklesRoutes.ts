@@ -6,4 +6,5 @@ export type BucklesRoutes = {
     put?: BucklesRoute[];
     delete?: BucklesRoute[];
     options?: BucklesRoute[];
+    patch?: BucklesRoute[];
 } & { [key: string]: BucklesRoute[] };

@@ -151,4 +151,13 @@ export interface IUserController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * Clears the user status from the redis database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the status was successfully cleared in the redis database
+     */
+    clearUserState: (_request: Request, _response: Response) => Promise<void>;
 }

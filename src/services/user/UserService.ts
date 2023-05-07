@@ -163,13 +163,14 @@ export class UserService implements IUserService {
                 password,
             );
 
-        return [
-            new ApiResponse(
-                id,
-                fixedEncryptionResult === foundEncryptedPasswordSalt.password,
-            ),
-            foundUserId,
-        ];
+        const isValidLogin =
+            fixedEncryptionResult === foundEncryptedPasswordSalt.password;
+
+        if (isValidLogin) {
+            await this.refreshUserState(id, foundUserId);
+        }
+
+        return [new ApiResponse(id, isValidLogin), foundUserId];
     };
 
     /** @inheritdoc */
@@ -634,11 +635,16 @@ export class UserService implements IUserService {
     ): Promise<ApiResponse<boolean>> => {
         const result = await this.redisService.client.set(
             `user_state_${userId}`,
-            `${Date.now() * 1000}`,
+            `${
+                Number.parseInt(
+                    process.env
+                        .STATE_EXPIRATION_TIME_SECONDS as unknown as string,
+                    10,
+                ) * 1000
+            }`,
             {
                 EX: process.env
                     .STATE_EXPIRATION_TIME_SECONDS as unknown as number,
-                NX: true,
             },
         );
 
@@ -659,13 +665,13 @@ export class UserService implements IUserService {
         id: string,
         userId: number,
     ): Promise<ApiResponse<ActiveStatus>> => {
-        const expireTime = await this.redisService.client.expireTime(
+        const timeLeft = await this.redisService.client.pTTL(
             `user_state_${userId}`,
         );
 
-        if (expireTime < 0) {
+        if (timeLeft < 0) {
             throw new Error(
-                expireTime === -1
+                timeLeft === -1
                     ? "No expire time set for this entry"
                     : "The key does not exist",
             );
@@ -679,17 +685,21 @@ export class UserService implements IUserService {
             throw new Error("Key does not exist");
         }
 
-        const timeLeft = expireTime - Number.parseInt(setTime, 10);
+        const timeElapsed = Number.parseInt(setTime, 10) - timeLeft;
 
         const isAway =
-            timeLeft <
+            timeElapsed >
                 Number.parseInt(
                     process.env.STATE_EXPIRATION_AWAY_THRESHOLD as string,
                     10,
-                ) && timeLeft > 0;
+                ) && timeElapsed > 0;
 
         const currentStatus =
-            timeLeft <= 0 ? ActiveStatusType.OFFLINE : ActiveStatusType.ONLINE;
+            timeElapsed <= 0
+                ? ActiveStatusType.OFFLINE
+                : ActiveStatusType.ONLINE;
+
+        console.log(timeLeft, setTime, timeElapsed, isAway);
 
         await this.psqlClient.userRepo.update(
             {

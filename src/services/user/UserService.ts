@@ -65,6 +65,21 @@ export class UserService implements IUserService {
     };
 
     /** @inheritdoc */
+    public doesFriendshipExist = async (
+        id: string,
+        userIdOne: number,
+        userIdTwo: number,
+    ): Promise<boolean> =>
+        (await this.psqlClient.friendRepo.findOne({
+            where: {
+                [Op.or]: [
+                    { recipient: userIdOne, sender: userIdTwo },
+                    { recipient: userIdTwo, sender: userIdOne },
+                ],
+            },
+        })) !== null;
+
+    /** @inheritdoc */
     public createUser = async (
         id: string,
         username: string,
@@ -215,10 +230,11 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public removeUser = async (
         id: string,
-        userId: number,
+        fromUserId: number,
+        removingUserId: number,
     ): Promise<ApiResponse<boolean>> => {
         const foundUser = await this.psqlClient.userRepo.findOne({
-            where: { id: userId },
+            where: { id: removingUserId },
         });
 
         if (foundUser === null) {
@@ -234,8 +250,18 @@ export class UserService implements IUserService {
             throw new Error("Username is not present in database");
         }
 
+        const doesFriendshipExist = await this.doesFriendshipExist(
+            id,
+            fromUserId,
+            removingUserId,
+        );
+
+        if (!doesFriendshipExist) {
+            throw new Error("Friendship does not exist between the 2 users");
+        }
+
         const removalResult = await this.psqlClient.userRepo?.destroy({
-            where: { id: userId },
+            where: { id: removingUserId },
         });
 
         if (removalResult === 0 || removalResult === undefined) {

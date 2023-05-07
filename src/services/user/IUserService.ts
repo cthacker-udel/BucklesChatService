@@ -21,6 +21,20 @@ export interface IUserService {
     ) => Promise<ApiResponse<boolean>>;
 
     /**
+     * Checks if the friendship between the two users exists in the database
+     *
+     * @param _id - The id to track the transaction, used for tracking purposes
+     * @param _userIdOne - The user id of the first user in the pair
+     * @param _userIdTwo - The user if of the second user in the pair
+     * @returns Whether or not the friendship exists in the database
+     */
+    doesFriendshipExist: (
+        _id: string,
+        _userIdOne: number,
+        _userIdTwo: number,
+    ) => Promise<boolean>;
+
+    /**
      * Creates a user within the psql database
      *
      * @param _id - The id to track the transaction
@@ -72,10 +86,15 @@ export interface IUserService {
      * Attempts to remove a user from the database
      *
      * @param _id - The id to track the transaction
-     * @param _userId - The user id we are using to find and delete the user
+     * @param _fromUserId - The id of the user who is requesting the user to be removed
+     * @param _removingUserId - The user id we are using to find and delete the user
      * @returns Whether the user was successfully deleted or not
      */
-    removeUser: (_id: string, _userId: number) => Promise<ApiResponse<boolean>>;
+    removeUser: (
+        _id: string,
+        _fromUserId: number,
+        _removingUserId: number,
+    ) => Promise<ApiResponse<boolean>>;
 
     /**
      * Edits a user within the database with the matching provided username

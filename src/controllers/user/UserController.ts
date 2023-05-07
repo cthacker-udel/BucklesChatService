@@ -289,14 +289,23 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const userId = this.encryptionService.getUserIdFromRequest(request);
+            const fromUserId =
+                this.encryptionService.getUserIdFromRequest(request);
 
-            if (userId === undefined) {
-                throw new Error("Must supply username when removing user");
+            if (fromUserId === undefined) {
+                throw new Error("Must supply valid token");
             }
+
+            const requestedUserId = request.query.id as string;
+
+            if (requestedUserId === undefined) {
+                throw new Error("Must supply user id to remove");
+            }
+
             const deleteResponse = await this.userService.removeUser(
                 id,
-                userId,
+                fromUserId,
+                Number.parseInt(requestedUserId, 10),
             );
             response.status(200);
             response.send(deleteResponse);

@@ -287,6 +287,17 @@ export class UserController extends BaseController implements IUserController {
             const [isIpThrottled, ipThrottledUntil] =
                 await this.userService.evaluateThrottleStatus(ip, "IP");
 
+            console.log(
+                "isUSername = ",
+                isUsernameThrottled,
+                "usernameThrottledUntil = ",
+                usernameThrottledUntil,
+                "ipThrottled = ",
+                isIpThrottled,
+                "ipThrottledUntil = ",
+                ipThrottledUntil,
+            );
+
             loginResult.data!.loggedIn =
                 loginResult.data!.loggedIn &&
                 !isUsernameThrottled &&

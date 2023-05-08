@@ -871,6 +871,17 @@ export class UserService implements IUserService {
             process.env[`FAILED_${type}_ATTEMPTS_${failedAttempts}`],
         );
 
+        console.log(
+            "minutesLimit = ",
+            minutesLimit,
+            " with ",
+            failedAttempts,
+            " attempts and type = ",
+            type,
+            " with throttle status ",
+            convertedThrottleStatus,
+        );
+
         if (!isNaN(minutesLimit) && lockedAt === 0) {
             // update the locked at in the database with the current time, and return the current time + the time remaining
             await this.redisService.client.set(
@@ -912,7 +923,10 @@ export class UserService implements IUserService {
             return [false, 0];
         }
 
-        return [true, Date.now() - convertedThrottleStatus.lockedAt];
+        return [
+            true,
+            lockedAt + numericalConverter.minutes.toMilliseconds(minutesLimit),
+        ];
     };
 
     /** @inheritdoc */

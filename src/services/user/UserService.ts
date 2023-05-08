@@ -771,7 +771,7 @@ export class UserService implements IUserService {
         const settingStatus = await this.redisService.client.set(
             `${key}_throttle_status`,
             JSON.stringify(newStatus),
-            { EX: numericalConverter.seconds.toMinutes(5) },
+            { EX: numericalConverter.minutes.toSeconds(5) },
         );
 
         if (settingStatus === null) {
@@ -858,6 +858,7 @@ export class UserService implements IUserService {
         );
 
         if (throttleStatus === null) {
+            await this.setThrottleStatus(key);
             return [false, 0];
         }
 
@@ -869,6 +870,23 @@ export class UserService implements IUserService {
         const minutesLimit = Number(
             process.env[`FAILED_${type}_ATTEMPTS_${failedAttempts}`],
         );
+
+        if (!isNaN(minutesLimit) && lockedAt === 0) {
+            // update the locked at in the database with the current time, and return the current time + the time remaining
+            await this.redisService.client.set(
+                `${key}_throttle_status`,
+                JSON.stringify({
+                    ...convertedThrottleStatus,
+                    lockedAt: Date.now(),
+                }),
+            );
+            return [
+                true,
+                Date.now() +
+                    numericalConverter.minutes.toMilliseconds(minutesLimit),
+            ];
+        }
+
         const timeThreshold =
             numericalConverter.minutes.toMilliseconds(minutesLimit);
         const timeBetween = Date.now() - lockedAt;
@@ -887,6 +905,10 @@ export class UserService implements IUserService {
                 JSON.stringify(updatedThrottleStatus),
                 { EX: numericalConverter.minutes.toSeconds(minutesLimit + 5) },
             );
+            return [false, 0];
+        }
+
+        if (isNaN(minutesLimit)) {
             return [false, 0];
         }
 

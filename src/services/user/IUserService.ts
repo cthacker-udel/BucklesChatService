@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/indent -- disabled */
+import { LoginDiagnostics } from "../../@types/app/LoginDiagnostics";
 import { ActiveStatus } from "../../@types/user/ActiveStatus";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { DbUser } from "../../@types/user/DbUser";
@@ -131,7 +132,7 @@ export interface IUserService {
      * @param _id - The id to track the transaction
      * @returns - The total # of users that are online and using the service
      */
-    usersOnline: (_id: string) => Promise<ApiResponse<number>>;
+    totalUsersOnline: (_id: string) => Promise<ApiResponse<number>>;
 
     /**
      * Returns the total # of users in the entire application
@@ -140,6 +141,22 @@ export interface IUserService {
      * @returns - The total # of users in the entire application
      */
     totalUsers: (_id: string) => Promise<ApiResponse<number>>;
+
+    /**
+     * Returns the total # of messages in the entire application
+     *
+     * @param _id - The id to track the transaction
+     * @returns - The total # of messages in the entire application
+     */
+    totalMessages: (_id: string) => Promise<ApiResponse<number>>;
+
+    /**
+     * Returns the login diagnostics information (basically what stats are displayed on the home page)
+     *
+     * @param _id - The id to track the transaction
+     * @returns - The total login diagnostics, which are displayed on the login page
+     */
+    loginDiagnostics: (_id: string) => Promise<ApiResponse<LoginDiagnostics>>;
 
     /**
      * Fetches the dashboard information for the user sending the request

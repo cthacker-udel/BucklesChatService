@@ -126,6 +126,10 @@ export class UserController extends BaseController implements IUserController {
                     handler: this.clearCacheThrottleKeys,
                     middleware: [authToken, adminVerification],
                 },
+                {
+                    endpoint: "loginDiagnostics",
+                    handler: this.loginDiagnostics,
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -440,7 +444,9 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const totalUsersOnline = await this.userService.usersOnline(id);
+            const totalUsersOnline = await this.userService.totalUsersOnline(
+                id,
+            );
             response.status(200);
             response.send(totalUsersOnline);
         } catch (error: unknown) {
@@ -864,6 +870,35 @@ export class UserController extends BaseController implements IUserController {
 
             response.status(didFlush ?? false ? 200 : 400);
             response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public loginDiagnostics = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const loginDiagnostics = await this.userService.loginDiagnostics(
+                id,
+            );
+
+            response.status(loginDiagnostics === undefined ? 500 : 200);
+            response.send(loginDiagnostics);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

@@ -182,4 +182,13 @@ export interface IUserController {
      * @returns 200 if the flush was successful, else if not
      */
     flushCache: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Retrieves the login diagnostic stats (total users, total online, and total messages)
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the fetch was successful, else if not
+     */
+    loginDiagnostics: (_request: Request, _response: Response) => Promise<void>;
 }

@@ -19,6 +19,7 @@ import { ActiveStatus, ActiveStatusType } from "../../@types/user/ActiveStatus";
 import { ThrottleStatus } from "../../@types/user/ThrottleStatus";
 import { LoginResponse } from "../../@types/user/LoginResponse";
 import { numericalConverter } from "../../helpers/NumericalConverter/numericalConverter";
+import { LoginDiagnostics } from "../../@types/app/LoginDiagnostics";
 
 export class UserService implements IUserService {
     /**
@@ -354,7 +355,9 @@ export class UserService implements IUserService {
     };
 
     /** @inheritdoc */
-    public usersOnline = async (id: string): Promise<ApiResponse<number>> =>
+    public totalUsersOnline = async (
+        id: string,
+    ): Promise<ApiResponse<number>> =>
         new ApiResponse(
             id,
             await this.psqlClient.userRepo.count({
@@ -366,6 +369,27 @@ export class UserService implements IUserService {
     public totalUsers = async (id: string): Promise<ApiResponse<number>> => {
         const total = await this.psqlClient.userRepo?.count();
         return new ApiResponse(id, total);
+    };
+
+    /** @inheritdoc */
+    public totalMessages = async (id: string): Promise<ApiResponse<number>> => {
+        const total = await this.psqlClient.messageRepo.count();
+        return new ApiResponse(id, total);
+    };
+
+    /** @inheritdoc */
+    public loginDiagnostics = async (
+        id: string,
+    ): Promise<ApiResponse<LoginDiagnostics>> => {
+        const { data: totalMessages } = await this.totalMessages(id);
+        const { data: totalUsers } = await this.totalUsers(id);
+        const { data: totalOnline } = await this.totalUsersOnline(id);
+
+        return new ApiResponse(id, {
+            totalMessages,
+            totalOnline,
+            totalUsers,
+        } as LoginDiagnostics);
     };
 
     /** @inheritdoc */

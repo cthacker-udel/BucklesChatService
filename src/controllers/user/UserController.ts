@@ -584,12 +584,22 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error("Must supply user id to logout");
+            }
 
             request.session.destroy(() => {});
             response.clearCookie("connect.sid");
             response.clearCookie(cookieKey);
-            response.status(200);
-            response.send({ data: true });
+            const didLogout = await this.userService.logout(
+                id,
+                userId,
+                request.ip,
+            );
+            response.status(didLogout ? 200 : 400);
+            response.send({ data: didLogout });
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

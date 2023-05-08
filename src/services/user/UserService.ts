@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- disabled */
 /* eslint-disable @typescript-eslint/indent -- disabled */
 /* eslint-disable implicit-arrow-linebreak -- disabled */
 
@@ -195,6 +196,43 @@ export class UserService implements IUserService {
     };
 
     /** @inheritdoc */
+    public logout = async (
+        id: string,
+        userId: number,
+        ip: string,
+    ): Promise<boolean> => {
+        try {
+            const foundUser = await this.psqlClient.userRepo.findOne({
+                where: { id: userId },
+            });
+
+            if (foundUser === undefined) {
+                throw new Error("User does not exist");
+            }
+
+            // set as offline
+            const [updatedUserState] = await this.psqlClient.userRepo.update(
+                { status: ActiveStatusType.OFFLINE },
+                { where: { id: userId } },
+            );
+
+            // clear throttle keys from redis cache
+            await this.clearThrottleKeys(id, userId, ip);
+
+            // clear user state from cache
+            const { data: clearedUserState } = await this.clearUserState(
+                id,
+                userId,
+            );
+
+            return (updatedUserState > 0 && clearedUserState) ?? false;
+        } catch {
+            // Disregard error, return that logout failed
+            return false;
+        }
+    };
+
+    /** @inheritdoc */
     public signUp = async (
         id: string,
         user: Partial<DbUser>,
@@ -317,7 +355,12 @@ export class UserService implements IUserService {
 
     /** @inheritdoc */
     public usersOnline = async (id: string): Promise<ApiResponse<number>> =>
-        new ApiResponse(id, await this.redisService.client.dbSize());
+        new ApiResponse(
+            id,
+            await this.psqlClient.userRepo.count({
+                where: { status: ActiveStatusType.ONLINE },
+            }),
+        );
 
     /** @inheritdoc */
     public totalUsers = async (id: string): Promise<ApiResponse<number>> => {

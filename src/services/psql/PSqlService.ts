@@ -7,6 +7,7 @@ import { Sequelize, ModelStatic, DataTypes } from "@sequelize/core";
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { Message } from "../../models/sequelize/Message";
 import { Thread } from "../../models/sequelize/Thread";
+import { ActiveStatusType } from "../../@types/user/ActiveStatus";
 
 export class PSqlService {
     public sqlize: Sequelize;
@@ -132,6 +133,7 @@ export class PSqlService {
                 },
                 status: {
                     allowNull: true,
+                    defaultValue: ActiveStatusType.OFFLINE,
                     type: DataTypes.SMALLINT,
                 },
                 updatedAt: {

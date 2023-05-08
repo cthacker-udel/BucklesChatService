@@ -73,6 +73,16 @@ export interface IUserService {
     ) => Promise<[ApiResponse<LoginResponse>, number]>;
 
     /**
+     * Logs the user out (marking them as )
+     *
+     * @param _id - The id to track the transaction
+     * @param _userId - The user id which is used to access the database
+     * @param _ip - The ip address linked to the request, used for removing throttle keys
+     * @returns Whether the logout operation was successful
+     */
+    logout: (_id: string, _userId: number, _ip: string) => Promise<boolean>;
+
+    /**
      * Attempts to sign the user up in the database
      *
      * @param _id - The id to track the transaction

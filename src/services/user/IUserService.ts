@@ -378,4 +378,13 @@ export interface IUserService {
      * @returns Whether or not the key was deleted
      */
     clearKey: (_id: string, _key: string) => Promise<boolean>;
+
+    /**
+     * !!WARNING!!
+     * Flushes the entire redis cache of all keys
+     *
+     * @param _id - The id to track the transaction
+     * @returns Whether the entire cache was flushed
+     */
+    flushCache: (_id: string) => Promise<ApiResponse<boolean>>;
 }

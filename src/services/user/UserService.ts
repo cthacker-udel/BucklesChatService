@@ -731,8 +731,6 @@ export class UserService implements IUserService {
                 ? ActiveStatusType.OFFLINE
                 : ActiveStatusType.ONLINE;
 
-        console.log(timeLeft, setTime, timeElapsed, isAway);
-
         await this.psqlClient.userRepo.update(
             {
                 status: isAway ? ActiveStatusType.AWAY : currentStatus,
@@ -871,17 +869,6 @@ export class UserService implements IUserService {
             process.env[`FAILED_${type}_ATTEMPTS_${failedAttempts}`],
         );
 
-        console.log(
-            "minutesLimit = ",
-            minutesLimit,
-            " with ",
-            failedAttempts,
-            " attempts and type = ",
-            type,
-            " with throttle status ",
-            convertedThrottleStatus,
-        );
-
         if (!isNaN(minutesLimit) && lockedAt === 0) {
             // update the locked at in the database with the current time, and return the current time + the time remaining
             await this.redisService.client.set(
@@ -962,5 +949,12 @@ export class UserService implements IUserService {
         const result = await this.redisService.client.del(key);
 
         return result > 0;
+    };
+
+    /** @inheritdoc */
+    public flushCache = async (id: string): Promise<ApiResponse<boolean>> => {
+        const result = await this.redisService.client.flushDb();
+
+        return new ApiResponse(id, result !== null);
     };
 }

@@ -134,6 +134,11 @@ export class UserController extends BaseController implements IUserController {
                 { endpoint: "signup", handler: this.signUp },
                 { endpoint: "login", handler: this.login },
                 { endpoint: "logout", handler: this.logout },
+                {
+                    endpoint: "flushCache",
+                    handler: this.flushCache,
+                    middleware: [authToken, adminVerification],
+                },
             ],
             BucklesRouteType.POST,
         );
@@ -286,17 +291,6 @@ export class UserController extends BaseController implements IUserController {
                 );
             const [isIpThrottled, ipThrottledUntil] =
                 await this.userService.evaluateThrottleStatus(ip, "IP");
-
-            console.log(
-                "isUSername = ",
-                isUsernameThrottled,
-                "usernameThrottledUntil = ",
-                usernameThrottledUntil,
-                "ipThrottled = ",
-                isIpThrottled,
-                "ipThrottledUntil = ",
-                ipThrottledUntil,
-            );
 
             loginResult.data!.loggedIn =
                 loginResult.data!.loggedIn &&
@@ -819,6 +813,47 @@ export class UserController extends BaseController implements IUserController {
 
             response.status(data[0] && data[1] ? 200 : 500);
             response.send(clearThrottleKeysResult);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public flushCache = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error("Must supply user id to execute this action");
+            }
+
+            await this.loggerService.LogEvent(id, {
+                id,
+                message: `User ${userId} attempting to flush the cache`,
+                timestamp: Date.now(),
+                type: "ADMIN",
+            });
+
+            const result = await this.userService.flushCache(id);
+
+            const { data: didFlush } = result;
+
+            response.status(didFlush ?? false ? 200 : 400);
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

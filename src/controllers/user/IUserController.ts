@@ -172,4 +172,14 @@ export interface IUserController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * !!WARNING!!
+     * Flushes the entire redis cache
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the flush was successful, else if not
+     */
+    flushCache: (_request: Request, _response: Response) => Promise<void>;
 }

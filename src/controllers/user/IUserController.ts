@@ -162,7 +162,7 @@ export interface IUserController {
     clearUserState: (_request: Request, _response: Response) => Promise<void>;
 
     /**
-     * Clears the throttle keys from the redis databas
+     * Clears the throttle keys from the redis database
      *
      * @param _request - The client request
      * @param _response - The client response

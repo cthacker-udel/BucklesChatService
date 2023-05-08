@@ -21,6 +21,7 @@ import { SessionToken } from "../../@types/encryption/SessionToken";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
 import { EmailService } from "../../services/email/EmailService";
 import { cookieKey } from "../../constants/cookie/cookieKey";
+import { adminVerification } from "../../middleware/adminVerification/adminVerification";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -123,7 +124,7 @@ export class UserController extends BaseController implements IUserController {
                 {
                     endpoint: "clearThrottleKeys",
                     handler: this.clearCacheThrottleKeys,
-                    middleware: [authToken],
+                    middleware: [authToken, adminVerification],
                 },
             ],
             BucklesRouteType.GET,

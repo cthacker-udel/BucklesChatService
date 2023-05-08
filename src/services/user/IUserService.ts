@@ -2,6 +2,8 @@
 import { ActiveStatus } from "../../@types/user/ActiveStatus";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { DbUser } from "../../@types/user/DbUser";
+import { LoginResponse } from "../../@types/user/LoginResponse";
+import { ThrottleStatus } from "../../@types/user/ThrottleStatus";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
 
 /**
@@ -68,7 +70,7 @@ export interface IUserService {
     login: (
         _id: string,
         _user: Partial<DbUser>,
-    ) => Promise<[ApiResponse<boolean>, number]>;
+    ) => Promise<[ApiResponse<LoginResponse>, number]>;
 
     /**
      * Attempts to sign the user up in the database
@@ -310,4 +312,70 @@ export interface IUserService {
         _id: string,
         _userId: number,
     ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Adds a throttle status entry into the redis database
+     *
+     * @param key - The key used for storing the value
+     * @returns Whether the throttle status was added or not
+     */
+    setThrottleStatus: (_key: string) => Promise<ThrottleStatus>;
+
+    /**
+     * Gets the throttle status of the requester, if one exists in the database
+     *
+     * @param _ip - The ip of the requester
+     * @returns The throttle status of the requester, if one exists in the redis database
+     */
+    getThrottleStatusIp: (_ip: string) => Promise<ThrottleStatus>;
+
+    /**
+     * Gets the throttle status of the requester, if one exists in the database
+     *
+     * @param _username - The username of the requester
+     * @returns The throttle status of the requester, if one exists in the redis database
+     */
+    getThrottleStatusUsername: (_username: string) => Promise<ThrottleStatus>;
+
+    /**
+     * Increments the throttle status of the associated key in the redis database
+     *
+     * @param _key - The key used to update the login throttle entry in the redis database
+     * @returns Whether the entry was updated
+     */
+    incrementThrottleStatus: (_key: string) => Promise<boolean>;
+
+    /**
+     * Evaluates whether the throttle status can be removed, based on the attempts and the time elapsed since then
+     *
+     * @param _key - The key used to update the login throttle entry, possibly zeroing it
+     * @param _type - The type of throttle we are evaluating, used to access the attempts
+     * @returns Whether the user is currently throttled or not
+     */
+    evaluateThrottleStatus: (
+        _key: string,
+        _type: "IP" | "USERNAME",
+    ) => Promise<[boolean, number]>;
+
+    /**
+     * Clears the ip and username throttle keys from the redis database
+     *
+     * @param _id - The id to track the transaction
+     * @param _userId - The user id used to access the username from the user db
+     * @param _ip - The ip address to clear the ip address throttle key
+     * @returns Whether the keys were deleted or not
+     */
+    clearThrottleKeys: (
+        _id: string,
+        _userId: number,
+        _ip: string,
+    ) => Promise<ApiResponse<[ip: boolean, username: boolean]>>;
+
+    /**
+     * Clears the supplied key from the redis database
+     *
+     * @param _key - The key to clear from the redis database
+     * @returns Whether or not the key was deleted
+     */
+    clearKey: (_id: string, _key: string) => Promise<boolean>;
 }

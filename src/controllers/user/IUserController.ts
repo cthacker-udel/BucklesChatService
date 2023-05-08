@@ -160,4 +160,16 @@ export interface IUserController {
      * @returns 200 if the status was successfully cleared in the redis database
      */
     clearUserState: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Clears the throttle keys from the redis databas
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the keys were successfully cleared, else if not
+     */
+    clearCacheThrottleKeys: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
 }

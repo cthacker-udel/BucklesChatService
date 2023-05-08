@@ -120,6 +120,11 @@ export class UserController extends BaseController implements IUserController {
                     handler: this.pingUserStateExpiration,
                     middleware: [authToken],
                 },
+                {
+                    endpoint: "clearThrottleKeys",
+                    handler: this.clearCacheThrottleKeys,
+                    middleware: [authToken],
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -251,13 +256,53 @@ export class UserController extends BaseController implements IUserController {
         try {
             id = getIdFromRequest(request);
             const loginPayload = request.body as Partial<DbUser>;
+
+            if (
+                loginPayload.username === undefined ||
+                loginPayload.password === undefined
+            ) {
+                throw new Error("Must supply username and password to login");
+            }
+
+            const { username } = loginPayload;
+            const ip = request.ip;
+
             const [loginResult, userId] = await this.userService.login(
                 id,
                 loginPayload,
             );
 
-            response.status(loginResult.data ?? false ? 200 : 400);
-            if (loginResult.data !== undefined) {
+            const { data } = loginResult;
+
+            if (data === undefined) {
+                throw new Error("Issue logging in");
+            }
+
+            const [isUsernameThrottled, usernameThrottledUntil] =
+                await this.userService.evaluateThrottleStatus(
+                    username,
+                    "USERNAME",
+                );
+            const [isIpThrottled, ipThrottledUntil] =
+                await this.userService.evaluateThrottleStatus(ip, "IP");
+
+            loginResult.data!.lockedUntil =
+                usernameThrottledUntil || ipThrottledUntil;
+
+            // If it is a failed login
+            if (
+                data !== undefined &&
+                !data.loggedIn &&
+                !isIpThrottled &&
+                !isUsernameThrottled
+            ) {
+                // increment throttle status if user is currently allowed to login
+                await this.userService.incrementThrottleStatus(request.ip);
+                await this.userService.incrementThrottleStatus(username);
+            }
+
+            response.status(loginResult.data?.loggedIn ?? false ? 200 : 400);
+            if (data?.loggedIn ?? false) {
                 response.cookie(
                     cookieKey,
                     sign(
@@ -266,6 +311,7 @@ export class UserController extends BaseController implements IUserController {
                     ),
                 );
             }
+
             response.send(loginResult);
         } catch (error: unknown) {
             await this.loggerService.LogException(
@@ -709,6 +755,54 @@ export class UserController extends BaseController implements IUserController {
 
             response.status(200);
             response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public clearCacheThrottleKeys = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error(
+                    "Must supply user id when removing throttle keys",
+                );
+            }
+
+            const clearThrottleKeysResult =
+                await this.userService.clearThrottleKeys(
+                    id,
+                    userId,
+                    request.ip,
+                );
+
+            const { data } = clearThrottleKeysResult;
+
+            if (data === undefined) {
+                throw new Error(
+                    "No data to check if keys were removed successfully",
+                );
+            }
+
+            response.status(data[0] && data[1] ? 200 : 500);
+            response.send(clearThrottleKeysResult);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

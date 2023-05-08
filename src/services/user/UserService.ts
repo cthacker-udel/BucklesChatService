@@ -15,6 +15,9 @@ import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { EmailService } from "../email/EmailService";
 import { Friend } from "../../models/sequelize/Friend";
 import { ActiveStatus, ActiveStatusType } from "../../@types/user/ActiveStatus";
+import { ThrottleStatus } from "../../@types/user/ThrottleStatus";
+import { LoginResponse } from "../../@types/user/LoginResponse";
+import { numericalConverter } from "../../helpers/NumericalConverter/numericalConverter";
 
 export class UserService implements IUserService {
     /**
@@ -120,13 +123,13 @@ export class UserService implements IUserService {
     public login = async (
         id: string,
         user: Partial<DbUser>,
-    ): Promise<[ApiResponse<boolean>, number]> => {
+    ): Promise<[ApiResponse<LoginResponse>, number]> => {
         const { username, password } = user;
         if (username === undefined || password === undefined) {
             return [
                 new ApiResponse(
                     id,
-                    false,
+                    { loggedIn: false } as LoginResponse,
                     new ApiErrorInfo(id).initException(
                         new Error(
                             "Must supply proper credentials when logging in",
@@ -146,9 +149,9 @@ export class UserService implements IUserService {
             foundEncryptedPasswordSalt.password === undefined
         ) {
             return [
-                new ApiResponse<boolean>(
+                new ApiResponse(
                     id,
-                    false,
+                    { loggedIn: false } as LoginResponse,
                     new ApiErrorInfo(id).initException(
                         new Error("No encryption data available for user"),
                     ),
@@ -163,7 +166,7 @@ export class UserService implements IUserService {
             return [
                 new ApiResponse(
                     id,
-                    false,
+                    { loggedIn: false } as LoginResponse,
                     new ApiErrorInfo(id).initException(
                         new Error("No user id found for username supplied"),
                     ),
@@ -185,7 +188,10 @@ export class UserService implements IUserService {
             await this.refreshUserState(id, foundUserId);
         }
 
-        return [new ApiResponse(id, isValidLogin), foundUserId];
+        return [
+            new ApiResponse(id, { lockedUntil: 0, loggedIn: isValidLogin }),
+            foundUserId,
+        ];
     };
 
     /** @inheritdoc */
@@ -721,7 +727,7 @@ export class UserService implements IUserService {
                 ) && timeElapsed > 0;
 
         const currentStatus =
-            timeElapsed <= 0
+            timeElapsed <= 0 || timeLeft <= 0
                 ? ActiveStatusType.OFFLINE
                 : ActiveStatusType.ONLINE;
 
@@ -754,5 +760,171 @@ export class UserService implements IUserService {
         }
 
         return new ApiResponse(id, true);
+    };
+
+    /** @inheritdoc */
+    public setThrottleStatus = async (key: string): Promise<ThrottleStatus> => {
+        const newStatus: ThrottleStatus = {
+            failedAttempts: 0,
+            lockedAt: 0,
+        };
+        const settingStatus = await this.redisService.client.set(
+            `${key}_throttle_status`,
+            JSON.stringify(newStatus),
+            { EX: numericalConverter.seconds.toMinutes(5) },
+        );
+
+        if (settingStatus === null) {
+            throw new Error("Unable to set throttle status");
+        }
+
+        return newStatus;
+    };
+
+    /** @inheritdoc */
+    public getThrottleStatusIp = async (
+        ip: string,
+    ): Promise<ThrottleStatus> => {
+        const throttleStatus = await this.redisService.client.get(
+            `${ip}_throttle_status`,
+        );
+
+        if (throttleStatus === null) {
+            const createdThrottleStatus = await this.setThrottleStatus(ip);
+            return createdThrottleStatus;
+        }
+
+        return JSON.parse(throttleStatus) as ThrottleStatus;
+    };
+
+    /** @inheritdoc */
+    public getThrottleStatusUsername = async (
+        username: string,
+    ): Promise<ThrottleStatus> => {
+        const throttleStatus = await this.redisService.client.get(
+            `${username}_throttle_status`,
+        );
+
+        if (throttleStatus === null) {
+            const createdThrottleStatus = await this.setThrottleStatus(
+                username,
+            );
+            return createdThrottleStatus;
+        }
+
+        return JSON.parse(throttleStatus) as ThrottleStatus;
+    };
+
+    /** @inheritdoc */
+    public incrementThrottleStatus = async (key: string): Promise<boolean> => {
+        const exists = await this.redisService.client.exists(
+            `${key}_throttle_status`,
+        );
+
+        if (exists === 0) {
+            await this.setThrottleStatus(key);
+        }
+
+        const throttleStatus = await this.redisService.client.get(
+            `${key}_throttle_status`,
+        );
+
+        if (throttleStatus === null) {
+            return false;
+        }
+
+        const convertedThrottleStatus = JSON.parse(
+            throttleStatus,
+        ) as ThrottleStatus;
+
+        const updateResult = await this.redisService.client.set(
+            `${key}_throttle_status`,
+            JSON.stringify({
+                ...convertedThrottleStatus,
+                failedAttempts: convertedThrottleStatus.failedAttempts + 1,
+            } as ThrottleStatus),
+        );
+
+        return updateResult !== null;
+    };
+
+    /** @inheritdoc */
+    public evaluateThrottleStatus = async (
+        key: string,
+        type: "IP" | "USERNAME",
+    ): Promise<[isThrottled: boolean, lockedUntil: number]> => {
+        const throttleStatus = await this.redisService.client.get(
+            `${key}_throttle_status`,
+        );
+
+        if (throttleStatus === null) {
+            return [false, 0];
+        }
+
+        const convertedThrottleStatus = JSON.parse(
+            throttleStatus,
+        ) as ThrottleStatus;
+
+        const { failedAttempts, lockedAt } = convertedThrottleStatus;
+        const minutesLimit = Number(
+            process.env[`FAILED_${type}_ATTEMPTS_${failedAttempts}`],
+        );
+        const timeThreshold =
+            numericalConverter.minutes.toMilliseconds(minutesLimit);
+        const timeBetween = Date.now() - lockedAt;
+
+        if (timeBetween >= timeThreshold) {
+            // If the time has elapsed, update value in cache
+            const updatedThrottleStatus = {
+                failedAttempts:
+                    convertedThrottleStatus.failedAttempts === 30
+                        ? 0
+                        : convertedThrottleStatus.failedAttempts,
+                lockedAt: 0,
+            } as ThrottleStatus;
+            await this.redisService.client.set(
+                `${key}_throttle_status`,
+                JSON.stringify(updatedThrottleStatus),
+                { EX: numericalConverter.minutes.toSeconds(minutesLimit + 5) },
+            );
+            return [false, 0];
+        }
+
+        return [true, Date.now() - convertedThrottleStatus.lockedAt];
+    };
+
+    /** @inheritdoc */
+    public clearThrottleKeys = async (
+        id: string,
+        userId: number,
+        ip: string,
+    ): Promise<ApiResponse<[ip: boolean, username: boolean]>> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            attributes: ["username"],
+            where: { id: userId },
+        });
+
+        if (foundUser === null) {
+            throw new Error("User must exist");
+        }
+
+        const removeIpKeyResult = await this.redisService.client.del(
+            `${ip}_throttle_status`,
+        );
+        const removeUsernameResult = await this.redisService.client.del(
+            `${foundUser.username}_throttle_status`,
+        );
+
+        return new ApiResponse(id, [
+            removeIpKeyResult > 0,
+            removeUsernameResult > 0,
+        ]);
+    };
+
+    /** @inheritdoc */
+    public clearKey = async (key: string): Promise<boolean> => {
+        const result = await this.redisService.client.del(key);
+
+        return result > 0;
     };
 }

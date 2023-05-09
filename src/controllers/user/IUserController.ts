@@ -191,4 +191,13 @@ export interface IUserController {
      * @returns 200 if the fetch was successful, else if not
      */
     loginDiagnostics: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Changes the user's password to the one supplied
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the change was successful, else if not
+     */
+    changePassword: (_request: Request, _response: Response) => Promise<void>;
 }

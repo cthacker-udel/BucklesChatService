@@ -22,6 +22,7 @@ import { EncryptionService } from "../../services/encryption/EncryptionService";
 import { EmailService } from "../../services/email/EmailService";
 import { cookieKey } from "../../constants/cookie/cookieKey";
 import { adminVerification } from "../../middleware/adminVerification/adminVerification";
+import { ChangePasswordRequest } from "./DTO/ChangePasswordRequest";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -143,6 +144,11 @@ export class UserController extends BaseController implements IUserController {
                     handler: this.flushCache,
                     middleware: [authToken, adminVerification],
                 },
+                {
+                    endpoint: "changePassword",
+                    handler: this.changePassword,
+                    middleware: [authToken],
+                },
             ],
             BucklesRouteType.POST,
         );
@@ -182,7 +188,7 @@ export class UserController extends BaseController implements IUserController {
         });
         this.userService = new UserService(
             this.psqlClient,
-            this.loggerService,
+            this.encryptionService,
             this.redisService,
             this.sendgridService,
         );
@@ -899,6 +905,47 @@ export class UserController extends BaseController implements IUserController {
 
             response.status(loginDiagnostics === undefined ? 500 : 200);
             response.send(loginDiagnostics);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public changePassword = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === null) {
+                throw new Error("Must supply user id in request");
+            }
+
+            const requestedChangePassword = (
+                request.body as ChangePasswordRequest
+            ).newPassword;
+
+            const result = await this.userService.changePassword(
+                id,
+                userId,
+                requestedChangePassword,
+            );
+
+            response.status(result?.data ?? false ? 200 : 400);
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

@@ -6,6 +6,7 @@ import { DbUser } from "../../@types/user/DbUser";
 import { LoginResponse } from "../../@types/user/LoginResponse";
 import { ThrottleStatus } from "../../@types/user/ThrottleStatus";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { User } from "../../models/sequelize/User";
 
 /**
  * Handles all business logic regarding User entities in the database
@@ -414,4 +415,28 @@ export interface IUserService {
      * @returns Whether the entire cache was flushed
      */
     flushCache: (_id: string) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Changes the user's password
+     *
+     * @param _id - The id to track the transaction
+     * @param _userId - The id of the user, used for updating and looking up fields
+     * @param _requestedChangePassword - The password the user is requesting become their new one
+     * @returns Whether the password was changed successfully or not
+     */
+    changePassword: (
+        _id: string,
+        _userId: number,
+        _requestedChangePassword: string,
+    ) => Promise<ApiResponse<boolean>>;
+
+    /**
+     * Finds the user's encryption data by passing in their user id
+     *
+     * @param _userId - The id of the user we are finding the encryption information for
+     * @returns The found user encryption data, or throws an exception if the user does not exist
+     */
+    findUserEncryptionDataId: (
+        _userId: number,
+    ) => Promise<Pick<User, "password" | "passwordSalt">>;
 }

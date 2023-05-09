@@ -5,7 +5,6 @@
 import { IUserService } from "./IUserService";
 import { PSqlService } from "../psql/PSqlService";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
-import { LoggerService } from "../logger/LoggerService";
 import { DbUser } from "../../@types/user/DbUser";
 import { EncryptionService } from "../encryption/EncryptionService";
 import { RedisService } from "../redis/RedisService";
@@ -28,9 +27,9 @@ export class UserService implements IUserService {
     private readonly psqlClient: PSqlService;
 
     /**
-     * The LoggerService instance used for logging exceptions to the mongo database
+     * The Encryption service used for all password + cookie operations regarding the user
      */
-    private readonly loggerService: LoggerService;
+    private readonly encryptionService: EncryptionService;
 
     /**
      * The redis service instance used to access the database
@@ -43,22 +42,27 @@ export class UserService implements IUserService {
     private readonly sendgridService: EmailService;
 
     /**
-     * Three-arg constructor, takes in a sql client used for interacting with the database that stores user information,
-     * and takes in an LoggerService instance used for logging exceptions to the mongo database.
+     * 4-arg constructor, taking in all necessary services to operate correctly.
+     * Takes in primarily the postgres client used for accessing and querying the database.
+     * Takes in the encryption service used for hashing and cookie operations.
+     * Takes in the redis service which is used for user state, and throttling service.
+     * Takes in the sendgrid service which is used to send confirmation emails.
      *
-     * @param _psqlClient - The psql client which is used to access user information
-     * @param _loggerService - The logger service which is used to add logs to the mongo database
+     * @param _psqlClient - The postgres client, instantiated in the root application and passed down from the controller
+     * @param _encryptionService - The encryption service, used for hashing and all encryption needs
+     * @param _redisService - The redis client instance, used for operations involving the user state, and cookies
+     * @param _sendgridService - The sendgrid client instance, used for all operations involving the sendgrid api (emails, automation, etc)
      */
     public constructor(
         _psqlClient: PSqlService,
-        _loggerService: LoggerService,
+        _encryptionService: EncryptionService,
         _redisService: RedisService,
         _sendgridService: EmailService,
     ) {
         this.psqlClient = _psqlClient;
-        this.loggerService = _loggerService;
         this.redisService = _redisService;
         this.sendgridService = _sendgridService;
+        this.encryptionService = _encryptionService;
     }
 
     /** @inheritdoc */
@@ -119,6 +123,24 @@ export class UserService implements IUserService {
         }
 
         return foundUserEncryptionData.dataValues as Partial<DbUser>;
+    };
+
+    /** @inheritdoc */
+    public findUserEncryptionDataId = async (
+        userId: number,
+    ): Promise<Pick<User, "password" | "passwordSalt">> => {
+        const foundUserEncryptionData = await this.psqlClient.userRepo.findOne({
+            attributes: [["password_salt", "passwordSalt"], "password"],
+            where: {
+                id: userId,
+            },
+        });
+
+        if (foundUserEncryptionData === null) {
+            throw new Error("No user exists with the id supplied!");
+        }
+
+        return foundUserEncryptionData.dataValues;
     };
 
     /** @inheritdoc */
@@ -1023,5 +1045,36 @@ export class UserService implements IUserService {
         const result = await this.redisService.client.flushDb();
 
         return new ApiResponse(id, result !== null);
+    };
+
+    /** @inheritdoc */
+    public changePassword = async (
+        id: string,
+        userId: number,
+        requestedChangePassword: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const { password, passwordSalt } = await this.findUserEncryptionDataId(
+            userId,
+        );
+
+        const fixedEncryption = this.encryptionService.fixedValueEncryption(
+            passwordSalt,
+            requestedChangePassword,
+        );
+
+        if (fixedEncryption === password) {
+            throw new Error("Same password used!");
+        }
+
+        const { hash, salt } = this.encryptionService.hmacEncrypt(
+            requestedChangePassword,
+        );
+
+        const [updateResult] = await this.psqlClient.userRepo.update(
+            { password: hash, passwordSalt: salt },
+            { where: { id: userId } },
+        );
+
+        return new ApiResponse(id, updateResult > 0);
     };
 }

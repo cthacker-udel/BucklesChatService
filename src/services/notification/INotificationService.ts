@@ -1,3 +1,5 @@
+import { FetchedNotification } from "../../@types/notification/FetchedNotification";
+import { ApiResponse } from "../../models/api/response/ApiResponse";
 import { NotificationType } from "../../models/sequelize/Notification";
 
 /**
@@ -33,4 +35,16 @@ export interface INotificationService {
      * @returns Whether all notifications relating to that user were received
      */
     flushNotifications: (_receiver: number) => Promise<boolean>;
+
+    /**
+     * Fetches all notifications in the database belonging to the receiver
+     *
+     * @param _id - The id to track the transaction
+     * @param _receiver - The id of the person receiving the notifications
+     * @returns All the fetched notifications from the database
+     */
+    fetchNotifications: (
+        _id: string,
+        _receiver: number,
+    ) => Promise<ApiResponse<FetchedNotification[]>>;
 }

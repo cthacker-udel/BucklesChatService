@@ -68,6 +68,7 @@ export class NotificationService implements INotificationService {
                     ["created_at", "createdAt"],
                     ["notification_type", "notificationType"],
                 ],
+                order: ["created_at", "ASC"],
                 where: { receiver },
             },
         );
@@ -106,6 +107,18 @@ export class NotificationService implements INotificationService {
                 allUsernamesAndHandles.set(id as number, { handle, username });
             }
         });
+
+        const destroyRequests: Promise<number>[] = [];
+
+        allNotifications.forEach((eachNotification: Notification) => {
+            destroyRequests.push(
+                this.psqlClient.notificationRepo.destroy({
+                    where: { id: eachNotification.id },
+                }),
+            );
+        });
+
+        await Promise.all(destroyRequests);
 
         return new ApiResponse(
             id,

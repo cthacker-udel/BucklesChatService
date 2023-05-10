@@ -14,6 +14,8 @@ import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessage
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { ChatRoomStats } from "../../controllers/message/chatroomDTO/ChatRoomStats";
 import { ChatRoomMessage } from "../../@types/message/ChatRoomMessage";
+import { NotificationService } from "../notification/NotificationService";
+import { NotificationType } from "../../models/sequelize/Notification";
 
 export class MessageService implements IMessageService {
     /**
@@ -22,12 +24,21 @@ export class MessageService implements IMessageService {
     private readonly psqlClient: PSqlService;
 
     /**
+     * Service for adding/removing notifications
+     */
+    private readonly notificationService: NotificationService;
+
+    /**
      * 1-arg constructor, instances of all necessary services are passed in
      *
      * @param _psqlService - The psql service
      */
-    constructor(_psqlService: PSqlService) {
+    constructor(
+        _psqlService: PSqlService,
+        _notificationService: NotificationService,
+    ) {
         this.psqlClient = _psqlService;
+        this.notificationService = _notificationService;
     }
 
     /** @inheritdoc */
@@ -627,6 +638,14 @@ export class MessageService implements IMessageService {
             sender: senderUser.id,
             thread: createdOrFoundThread.id,
         });
+
+        if (messageResult !== null) {
+            await this.notificationService.addNotification(
+                senderUser.id,
+                receiverUser.id,
+                NotificationType.SENDING_MESSAGE,
+            );
+        }
 
         await this.addMessageToThread(
             id,

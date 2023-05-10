@@ -430,7 +430,7 @@ export class PSqlService {
         this.notificationRepo = Notification.init(
             {
                 createdAt: {
-                    allowNull: true,
+                    allowNull: false,
                     type: DataTypes.DATE,
                 },
                 id: {
@@ -452,7 +452,7 @@ export class PSqlService {
                     type: DataTypes.INTEGER,
                 },
                 updatedAt: {
-                    allowNull: true,
+                    allowNull: false,
                     type: DataTypes.DATE,
                 },
             },

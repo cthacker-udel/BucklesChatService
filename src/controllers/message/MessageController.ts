@@ -20,6 +20,7 @@ import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { addMessageToChatRoomDTO } from "./messageDTO/addMessageToChatRoomDTO";
 import { authToken } from "../../middleware/authtoken/authtoken";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
+import { NotificationService } from "../../services/notification/NotificationService";
 
 export class MessageController
     extends BaseController
@@ -51,6 +52,11 @@ export class MessageController
     private readonly encryptionService: EncryptionService;
 
     /**
+     * Service for adding/removing notifications
+     */
+    private readonly notificationService: NotificationService;
+
+    /**
      * 3-arg constructor, taking in instances of the necessary services to run functionally complete
      *
      * @param _mongoService - The mongodb service
@@ -65,7 +71,12 @@ export class MessageController
         this.psqlClient = _psqlService;
         this.mongoService = _mongoService;
         this.loggerService = new LoggerService(_mongoService);
-        this.messageService = new MessageService(this.psqlClient);
+        this.notificationService = new NotificationService(_psqlService);
+
+        this.messageService = new MessageService(
+            this.psqlClient,
+            this.notificationService,
+        );
         this.encryptionService = _encryptionService;
         super.addRoutes(
             [

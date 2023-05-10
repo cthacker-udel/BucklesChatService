@@ -1097,12 +1097,12 @@ export class UserService implements IUserService {
             throw new Error("User does not exist");
         }
 
-        const allThreads = await this.psqlClient.threadRepo.destroy({
-            where: { [Op.or]: [{ creator: userId }, { receiver: userId }] },
-        });
-
         const allMessages = await this.psqlClient.messageRepo.destroy({
             where: { [Op.or]: [{ sender: userId }, { receiver: userId }] },
+        });
+
+        const allThreads = await this.psqlClient.threadRepo.destroy({
+            where: { [Op.or]: [{ creator: userId }, { receiver: userId }] },
         });
 
         const allFriendRequests =

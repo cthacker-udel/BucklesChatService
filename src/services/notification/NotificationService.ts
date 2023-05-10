@@ -84,7 +84,6 @@ export class NotificationService implements INotificationService {
         const allRequests: Promise<User | null>[] = [];
 
         allNotifications.forEach((eachNotification: Notification) => {
-            console.log(eachNotification);
             if (!allUsernamesAndHandles.has(eachNotification.receiver)) {
                 allUsernamesAndHandles.set(eachNotification.receiver, {});
                 allRequests.push(

@@ -32,12 +32,20 @@ export class NotificationService implements INotificationService {
     };
 
     /** @inheritdoc */
+    public removeNotification = async (id: number): Promise<boolean> => {
+        const removedNotification =
+            await this.psqlClient.notificationRepo.destroy({ where: { id } });
+
+        return removedNotification > 0;
+    };
+
+    /** @inheritdoc */
     public flushNotifications = async (receiver: number): Promise<boolean> => {
         const removeAllNotifications =
             await this.psqlClient.notificationRepo.destroy({
                 where: { receiver },
             });
 
-        return removeAllNotifications >= 0;
+        return removeAllNotifications > 0;
     };
 }

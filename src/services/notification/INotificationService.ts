@@ -18,6 +18,14 @@ export interface INotificationService {
     ) => Promise<boolean>;
 
     /**
+     * Removes specified notification from the database
+     *
+     * @param _id - The id of the notification to remove
+     * @returns Whether the notification was removed or not
+     */
+    removeNotification: (_id: number) => Promise<boolean>;
+
+    /**
      * Deletes all notifications that will be received by the user
      * specified in the function
      *

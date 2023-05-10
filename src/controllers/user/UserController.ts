@@ -987,10 +987,9 @@ export class UserController extends BaseController implements IUserController {
                 userId,
                 request.ip,
             );
-
-            const { data } = result;
-
-            response.status(data ?? false ? 200 : 400);
+            request.session.destroy(() => {});
+            response.clearCookie("connect.sid");
+            response.clearCookie(cookieKey);
             response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(

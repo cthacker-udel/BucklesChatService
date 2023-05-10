@@ -67,8 +67,11 @@ export class NotificationService implements INotificationService {
                 attributes: [
                     ["created_at", "createdAt"],
                     ["notification_type", "notificationType"],
+                    "sender",
+                    "receiver",
+                    "id",
                 ],
-                order: ["created_at", "ASC"],
+                order: [["created_at", "ASC"]],
                 where: { receiver },
             },
         );
@@ -80,20 +83,21 @@ export class NotificationService implements INotificationService {
 
         const allRequests: Promise<User | null>[] = [];
 
-        allNotifications.forEach((eachUser: Notification) => {
-            if (!allUsernamesAndHandles.has(eachUser.receiver)) {
-                allUsernamesAndHandles.set(eachUser.receiver, {});
+        allNotifications.forEach((eachNotification: Notification) => {
+            console.log(eachNotification);
+            if (!allUsernamesAndHandles.has(eachNotification.receiver)) {
+                allUsernamesAndHandles.set(eachNotification.receiver, {});
                 allRequests.push(
                     this.psqlClient.userRepo.findOne({
-                        where: { id: eachUser.receiver },
+                        where: { id: eachNotification.receiver },
                     }),
                 );
             }
-            if (!allUsernamesAndHandles.has(eachUser.sender)) {
-                allUsernamesAndHandles.set(eachUser.sender, {});
+            if (!allUsernamesAndHandles.has(eachNotification.sender)) {
+                allUsernamesAndHandles.set(eachNotification.sender, {});
                 allRequests.push(
                     this.psqlClient.userRepo.findOne({
-                        where: { id: eachUser.sender },
+                        where: { id: eachNotification.sender },
                     }),
                 );
             }
@@ -107,18 +111,6 @@ export class NotificationService implements INotificationService {
                 allUsernamesAndHandles.set(id as number, { handle, username });
             }
         });
-
-        const destroyRequests: Promise<number>[] = [];
-
-        allNotifications.forEach((eachNotification: Notification) => {
-            destroyRequests.push(
-                this.psqlClient.notificationRepo.destroy({
-                    where: { id: eachNotification.id },
-                }),
-            );
-        });
-
-        await Promise.all(destroyRequests);
 
         return new ApiResponse(
             id,

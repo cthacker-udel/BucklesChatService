@@ -239,14 +239,18 @@ export class UserService implements IUserService {
                 { where: { id: userId } },
             );
 
-            // clear throttle keys from redis cache
-            await this.clearThrottleKeys(id, userId, ip);
+            try {
+                // clear throttle keys from redis cache
+                await this.clearThrottleKeys(id, userId, ip);
+            } catch {}
 
             // clear user state from cache
             const { data: clearedUserState } = await this.clearUserState(
                 id,
                 userId,
             );
+
+            console.log(updatedUserState, clearedUserState);
 
             return (updatedUserState > 0 && clearedUserState) ?? false;
         } catch {

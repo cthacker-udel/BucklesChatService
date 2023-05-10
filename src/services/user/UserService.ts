@@ -1052,6 +1052,7 @@ export class UserService implements IUserService {
         id: string,
         userId: number,
         requestedChangePassword: string,
+        ip: string,
     ): Promise<ApiResponse<boolean>> => {
         const { password, passwordSalt } = await this.findUserEncryptionDataId(
             userId,
@@ -1075,6 +1076,72 @@ export class UserService implements IUserService {
             { where: { id: userId } },
         );
 
+        if (updateResult > 0) {
+            await this.logout(id, userId, ip);
+        }
+
         return new ApiResponse(id, updateResult > 0);
+    };
+
+    /** @inheritdoc */
+    public deleteUser = async (
+        id: string,
+        userId: number,
+        ip: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            where: { id: userId },
+        });
+
+        if (foundUser === null) {
+            throw new Error("User does not exist");
+        }
+
+        const allThreads = await this.psqlClient.threadRepo.destroy({
+            where: { [Op.or]: [{ creator: userId }, { receiver: userId }] },
+        });
+
+        const allMessages = await this.psqlClient.messageRepo.destroy({
+            where: { [Op.or]: [{ sender: userId }, { receiver: userId }] },
+        });
+
+        const allFriendRequests =
+            await this.psqlClient.friendRequestRepo.destroy({
+                where: { [Op.or]: [{ sender: userId }, { username: userId }] },
+            });
+
+        const allFriends = await this.psqlClient.friendRepo.destroy({
+            where: { [Op.or]: [{ sender: userId }, { recipient: userId }] },
+        });
+
+        const allBlocks = await this.psqlClient.blockRepo.destroy({
+            where: { [Op.or]: [{ sender: userId }, { blocked: userId }] },
+        });
+
+        const [allChatRooms] = await this.psqlClient.chatRoomRepo.update(
+            { createdBy: new Literal(null) },
+            { where: { createdBy: userId } },
+        );
+
+        // finally, remove the user
+
+        const removedUser = await this.psqlClient.userRepo.destroy({
+            where: { id: userId },
+        });
+
+        if (removedUser > 0) {
+            await this.logout(id, userId, ip);
+        }
+
+        return new ApiResponse(
+            id,
+            removedUser > 0 &&
+                (allBlocks >= 0 ||
+                    allFriends >= 0 ||
+                    allMessages >= 0 ||
+                    allThreads >= 0 ||
+                    allFriendRequests >= 0 ||
+                    allChatRooms >= 0),
+        );
     };
 }

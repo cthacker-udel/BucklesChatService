@@ -422,12 +422,14 @@ export interface IUserService {
      * @param _id - The id to track the transaction
      * @param _userId - The id of the user, used for updating and looking up fields
      * @param _requestedChangePassword - The password the user is requesting become their new one
+     * @param _ip - The ip address of the user, used to log them out after successfully changing their password
      * @returns Whether the password was changed successfully or not
      */
     changePassword: (
         _id: string,
         _userId: number,
         _requestedChangePassword: string,
+        _ip: string,
     ) => Promise<ApiResponse<boolean>>;
 
     /**
@@ -439,4 +441,18 @@ export interface IUserService {
     findUserEncryptionDataId: (
         _userId: number,
     ) => Promise<Pick<User, "password" | "passwordSalt">>;
+
+    /**
+     * Deletes the user from the database
+     *
+     * @param _id - The id to track the transaction
+     * @param _userId - The user id used to lookup all entries relating to the user
+     * @param _ip - The ip address of the user requesting to be deleted, used to log them out after deleting
+     * @returns Whether the deletion was a success or not
+     */
+    deleteUser: (
+        _id: string,
+        _userId: number,
+        _ip: string,
+    ) => Promise<ApiResponse<boolean>>;
 }

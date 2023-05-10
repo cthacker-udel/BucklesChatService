@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- disabled */
 /* eslint-disable @typescript-eslint/no-misused-promises -- disabled */
 import { IUserController } from "./IUserController";
 
@@ -158,6 +159,11 @@ export class UserController extends BaseController implements IUserController {
                 {
                     endpoint: "clearUserState",
                     handler: this.clearUserState,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "deleteUser",
+                    handler: this.deleteUser,
                     middleware: [authToken],
                 },
             ],
@@ -942,9 +948,49 @@ export class UserController extends BaseController implements IUserController {
                 id,
                 userId,
                 requestedChangePassword,
+                request.ip,
             );
 
             response.status(result?.data ?? false ? 200 : 400);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public deleteUser = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error("Must pass user id in request");
+            }
+
+            const result = await this.userService.deleteUser(
+                id,
+                userId,
+                request.ip,
+            );
+
+            const { data } = result;
+
+            response.status(data ?? false ? 200 : 400);
             response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(

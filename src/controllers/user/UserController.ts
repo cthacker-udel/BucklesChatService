@@ -78,6 +78,12 @@ export class UserController extends BaseController implements IUserController {
         this.redisService = _redisService;
         this.encryptionService = _encryptionService;
         this.sendgridService = _sendgridService;
+        this.userService = new UserService(
+            this.psqlClient,
+            this.encryptionService,
+            this.redisService,
+            this.sendgridService,
+        );
 
         super.addRoutes(
             [
@@ -192,12 +198,6 @@ export class UserController extends BaseController implements IUserController {
                 throw new Error("Logger Controller is not connected");
             }
         });
-        this.userService = new UserService(
-            this.psqlClient,
-            this.encryptionService,
-            this.redisService,
-            this.sendgridService,
-        );
     }
 
     /** @inheritdoc */

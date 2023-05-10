@@ -25,4 +25,5 @@ export class User extends Model<
     declare id?: number;
     declare isEmailConfirmed?: boolean;
     declare emailConfirmationToken?: string;
+    declare status?: number;
 }

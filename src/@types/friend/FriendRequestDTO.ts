@@ -13,7 +13,7 @@ export type FriendRequestDTO = {
     /**
      * The person who sent the request
      */
-    sender: string;
+    sender: number;
     /**
      * The profile image of the sender
      */

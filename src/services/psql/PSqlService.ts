@@ -7,6 +7,7 @@ import { Sequelize, ModelStatic, DataTypes } from "@sequelize/core";
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { Message } from "../../models/sequelize/Message";
 import { Thread } from "../../models/sequelize/Thread";
+import { ActiveStatusType } from "../../@types/user/ActiveStatus";
 
 export class PSqlService {
     public sqlize: Sequelize;
@@ -130,6 +131,11 @@ export class PSqlService {
                         isUrl: true,
                     },
                 },
+                status: {
+                    allowNull: true,
+                    defaultValue: ActiveStatusType.OFFLINE,
+                    type: DataTypes.SMALLINT,
+                },
                 updatedAt: {
                     allowNull: false,
                     type: DataTypes.DATE,
@@ -149,6 +155,14 @@ export class PSqlService {
         );
         this.blockRepo = Block.init(
             {
+                blocked: {
+                    allowNull: false,
+                    references: {
+                        key: "id",
+                        model: User,
+                    },
+                    type: DataTypes.INTEGER,
+                },
                 createdAt: {
                     allowNull: false,
                     type: DataTypes.DATE,
@@ -166,28 +180,14 @@ export class PSqlService {
                 sender: {
                     allowNull: false,
                     references: {
-                        key: "username",
+                        key: "id",
                         model: User,
                     },
-                    type: DataTypes.STRING(70),
-                    validate: {
-                        isAlpha: true,
-                    },
+                    type: DataTypes.INTEGER,
                 },
                 updatedAt: {
                     allowNull: false,
                     type: DataTypes.DATE,
-                },
-                username: {
-                    allowNull: false,
-                    references: {
-                        key: "username",
-                        model: User,
-                    },
-                    type: DataTypes.STRING(70),
-                    validate: {
-                        isAlpha: true,
-                    },
                 },
             },
             {
@@ -220,24 +220,18 @@ export class PSqlService {
                 recipient: {
                     allowNull: false,
                     references: {
-                        key: "username",
+                        key: "id",
                         model: User,
                     },
-                    type: DataTypes.STRING(70),
-                    validate: {
-                        isAlpha: true,
-                    },
+                    type: DataTypes.INTEGER,
                 },
                 sender: {
                     allowNull: false,
                     references: {
-                        key: "username",
+                        key: "id",
                         model: User,
                     },
-                    type: DataTypes.STRING(70),
-                    validate: {
-                        isAlpha: true,
-                    },
+                    type: DataTypes.INTEGER,
                 },
                 updatedAt: {
                     allowNull: false,
@@ -270,13 +264,10 @@ export class PSqlService {
                 sender: {
                     allowNull: false,
                     references: {
-                        key: "username",
+                        key: "id",
                         model: User,
                     },
-                    type: DataTypes.STRING(70),
-                    validate: {
-                        isAlpha: true,
-                    },
+                    type: DataTypes.INTEGER,
                 },
                 updatedAt: {
                     allowNull: false,
@@ -285,13 +276,10 @@ export class PSqlService {
                 username: {
                     allowNull: false,
                     references: {
-                        key: "username",
+                        key: "id",
                         model: User,
                     },
-                    type: DataTypes.STRING(70),
-                    validate: {
-                        isAlpha: true,
-                    },
+                    type: DataTypes.INTEGER,
                 },
             },
             {
@@ -309,7 +297,11 @@ export class PSqlService {
                 },
                 createdBy: {
                     allowNull: true,
-                    type: DataTypes.STRING(70),
+                    references: {
+                        key: "id",
+                        model: User,
+                    },
+                    type: DataTypes.INTEGER,
                 },
                 description: {
                     allowNull: true,
@@ -359,11 +351,19 @@ export class PSqlService {
                 },
                 receiver: {
                     allowNull: true,
-                    type: DataTypes.STRING(128),
+                    references: {
+                        key: "id",
+                        model: User,
+                    },
+                    type: DataTypes.INTEGER,
                 },
                 sender: {
                     allowNull: false,
-                    type: DataTypes.STRING(128),
+                    references: {
+                        key: "id",
+                        model: User,
+                    },
+                    type: DataTypes.INTEGER,
                 },
                 thread: {
                     allowNull: true,
@@ -393,7 +393,11 @@ export class PSqlService {
                 },
                 creator: {
                     allowNull: false,
-                    type: DataTypes.STRING(128),
+                    references: {
+                        key: "id",
+                        model: User,
+                    },
+                    type: DataTypes.INTEGER,
                 },
                 id: {
                     allowNull: false,
@@ -403,7 +407,11 @@ export class PSqlService {
                 },
                 receiver: {
                     allowNull: true,
-                    type: DataTypes.STRING(128),
+                    references: {
+                        key: "id",
+                        model: User,
+                    },
+                    type: DataTypes.INTEGER,
                 },
                 updatedAt: {
                     allowNull: false,

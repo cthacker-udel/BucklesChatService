@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- disabled */
 /* eslint-disable @typescript-eslint/no-misused-promises -- disabled */
 import { IUserController } from "./IUserController";
 
@@ -20,6 +21,9 @@ import { sign } from "jsonwebtoken";
 import { SessionToken } from "../../@types/encryption/SessionToken";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
 import { EmailService } from "../../services/email/EmailService";
+import { cookieKey } from "../../constants/cookie/cookieKey";
+import { adminVerification } from "../../middleware/adminVerification/adminVerification";
+import { ChangePasswordRequest } from "./DTO/ChangePasswordRequest";
 
 export class UserController extends BaseController implements IUserController {
     /**
@@ -114,6 +118,20 @@ export class UserController extends BaseController implements IUserController {
                     handler: this.confirmEmail,
                     middleware: [authToken],
                 },
+                {
+                    endpoint: "pingUserStateExpiration",
+                    handler: this.pingUserStateExpiration,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "clearThrottleKeys",
+                    handler: this.clearCacheThrottleKeys,
+                    middleware: [authToken, adminVerification],
+                },
+                {
+                    endpoint: "loginDiagnostics",
+                    handler: this.loginDiagnostics,
+                },
             ],
             BucklesRouteType.GET,
         );
@@ -122,15 +140,44 @@ export class UserController extends BaseController implements IUserController {
                 { endpoint: "signup", handler: this.signUp },
                 { endpoint: "login", handler: this.login },
                 { endpoint: "logout", handler: this.logout },
+                {
+                    endpoint: "flushCache",
+                    handler: this.flushCache,
+                    middleware: [authToken, adminVerification],
+                },
+                {
+                    endpoint: "changePassword",
+                    handler: this.changePassword,
+                    middleware: [authToken],
+                },
             ],
             BucklesRouteType.POST,
         );
         super.addRoutes(
-            [{ endpoint: "remove", handler: this.removeUser }],
+            [
+                { endpoint: "remove", handler: this.removeUser },
+                {
+                    endpoint: "clearUserState",
+                    handler: this.clearUserState,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "deleteUser",
+                    handler: this.deleteUser,
+                    middleware: [authToken],
+                },
+            ],
             BucklesRouteType.DELETE,
         );
         super.addRoutes(
-            [{ endpoint: "edit", handler: this.editUser }],
+            [
+                { endpoint: "edit", handler: this.editUser },
+                {
+                    endpoint: "refreshUserState",
+                    handler: this.refreshUserState,
+                    middleware: [authToken],
+                },
+            ],
             BucklesRouteType.PUT,
         );
 
@@ -147,7 +194,7 @@ export class UserController extends BaseController implements IUserController {
         });
         this.userService = new UserService(
             this.psqlClient,
-            this.loggerService,
+            this.encryptionService,
             this.redisService,
             this.sendgridService,
         );
@@ -231,18 +278,66 @@ export class UserController extends BaseController implements IUserController {
         try {
             id = getIdFromRequest(request);
             const loginPayload = request.body as Partial<DbUser>;
-            const loginResult = await this.userService.login(id, loginPayload);
 
-            response.status(loginResult.data ?? false ? 200 : 400);
-            if (loginResult.data !== undefined) {
+            if (
+                loginPayload.username === undefined ||
+                loginPayload.password === undefined
+            ) {
+                throw new Error("Must supply username and password to login");
+            }
+
+            const { username } = loginPayload;
+            const ip = request.ip;
+
+            const [loginResult, userId] = await this.userService.login(
+                id,
+                loginPayload,
+            );
+
+            const { data } = loginResult;
+
+            if (data === undefined) {
+                throw new Error("Issue logging in");
+            }
+
+            const [isUsernameThrottled, usernameThrottledUntil] =
+                await this.userService.evaluateThrottleStatus(
+                    username,
+                    "USERNAME",
+                );
+            const [isIpThrottled, ipThrottledUntil] =
+                await this.userService.evaluateThrottleStatus(ip, "IP");
+
+            loginResult.data!.loggedIn =
+                loginResult.data!.loggedIn &&
+                !isUsernameThrottled &&
+                !isIpThrottled;
+            loginResult.data!.lockedUntil =
+                usernameThrottledUntil || ipThrottledUntil;
+
+            // If it is a failed login
+            if (
+                data !== undefined &&
+                !data.loggedIn &&
+                !isIpThrottled &&
+                !isUsernameThrottled
+            ) {
+                // increment throttle status if user is currently allowed to login
+                await this.userService.incrementThrottleStatus(request.ip);
+                await this.userService.incrementThrottleStatus(username);
+            }
+
+            response.status(loginResult.data?.loggedIn ?? false ? 200 : 400);
+            if (data?.loggedIn ?? false) {
                 response.cookie(
-                    "X-USERNAME",
+                    cookieKey,
                     sign(
-                        { username: loginPayload.username } as SessionToken,
+                        { userId } as SessionToken,
                         process.env.TOKEN_SECRET as string,
                     ),
                 );
             }
+
             response.send(loginResult);
         } catch (error: unknown) {
             await this.loggerService.LogException(
@@ -266,14 +361,23 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const { username } = request.body as Partial<DbUser>;
+            const fromUserId =
+                this.encryptionService.getUserIdFromRequest(request);
 
-            if (username === undefined) {
-                throw new Error("Must supply username when removing user");
+            if (fromUserId === undefined) {
+                throw new Error("Must supply valid token");
             }
+
+            const requestedUserId = request.query.id as string;
+
+            if (requestedUserId === undefined) {
+                throw new Error("Must supply user id to remove");
+            }
+
             const deleteResponse = await this.userService.removeUser(
                 id,
-                username,
+                fromUserId,
+                Number.parseInt(requestedUserId, 10),
             );
             response.status(200);
             response.send(deleteResponse);
@@ -299,12 +403,13 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
             const {
-                username: _,
-                password: __,
-                passwordSalt: ___,
+                id: _,
+                username: __,
+                password: ___,
+                passwordSalt: ____,
                 ...rest
             } = request.body as Partial<DbUser>;
 
@@ -314,7 +419,7 @@ export class UserController extends BaseController implements IUserController {
 
             const editResponse = await this.userService.editUser(
                 id,
-                username,
+                userId,
                 rest,
             );
 
@@ -351,7 +456,9 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const totalUsersOnline = await this.userService.usersOnline(id);
+            const totalUsersOnline = await this.userService.totalUsersOnline(
+                id,
+            );
             response.status(200);
             response.send(totalUsersOnline);
         } catch (error: unknown) {
@@ -401,10 +508,10 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
             const userDashboardInformation =
-                await this.userService.dashboardInformation(id, username);
+                await this.userService.dashboardInformation(id, userId);
             response.status(200);
             response.send(userDashboardInformation);
         } catch (error: unknown) {
@@ -465,11 +572,11 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
             const userEditInformation = await this.userService.details(
                 id,
-                username,
+                userId,
             );
             response.status(200);
             response.send(userEditInformation);
@@ -495,12 +602,22 @@ export class UserController extends BaseController implements IUserController {
         let id = "";
         try {
             id = getIdFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error("Must supply user id to logout");
+            }
 
             request.session.destroy(() => {});
             response.clearCookie("connect.sid");
-            response.clearCookie("X-USERNAME");
-            response.status(200);
-            response.send({ data: true });
+            response.clearCookie(cookieKey);
+            const didLogout = await this.userService.logout(
+                id,
+                userId,
+                request.ip,
+            );
+            response.status(didLogout ? 200 : 400);
+            response.send({ data: didLogout });
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,
@@ -564,8 +681,7 @@ export class UserController extends BaseController implements IUserController {
             id = getIdFromRequest(request);
 
             const confirmationToken = request.query.token;
-            const username =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
             if (confirmationToken === undefined) {
                 throw new Error(
@@ -573,20 +689,309 @@ export class UserController extends BaseController implements IUserController {
                 );
             }
 
-            if (username === undefined) {
+            if (userId === undefined) {
                 throw new Error(
-                    "Must supply username in request when trying to confirm email",
+                    "Must supply user id in request when trying to confirm email",
                 );
             }
 
             const validateEmailResponse = await this.userService.confirmEmail(
                 id,
-                username,
+                userId,
                 confirmationToken as string,
             );
 
             response.status(200);
             response.send(validateEmailResponse);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public refreshUserState = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            const result = await this.userService.refreshUserState(id, userId);
+
+            response.status(200);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public pingUserStateExpiration = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            const result = await this.userService.expireTimeOfUserState(
+                id,
+                userId,
+            );
+
+            response.status(200);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public clearUserState = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            const result = await this.userService.clearUserState(id, userId);
+
+            response.status(200);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public clearCacheThrottleKeys = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error(
+                    "Must supply user id when removing throttle keys",
+                );
+            }
+
+            const clearThrottleKeysResult =
+                await this.userService.clearThrottleKeys(
+                    id,
+                    userId,
+                    request.ip,
+                );
+
+            const { data } = clearThrottleKeysResult;
+
+            if (data === undefined) {
+                throw new Error(
+                    "No data to check if keys were removed successfully",
+                );
+            }
+
+            response.status(data[0] && data[1] ? 200 : 500);
+            response.send(clearThrottleKeysResult);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public flushCache = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error("Must supply user id to execute this action");
+            }
+
+            await this.loggerService.LogEvent(id, {
+                id,
+                message: `User ${userId} attempting to flush the cache`,
+                timestamp: Date.now(),
+                type: "ADMIN",
+            });
+
+            const result = await this.userService.flushCache(id);
+
+            const { data: didFlush } = result;
+
+            response.status(didFlush ?? false ? 200 : 400);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public loginDiagnostics = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const loginDiagnostics = await this.userService.loginDiagnostics(
+                id,
+            );
+
+            response.status(loginDiagnostics === undefined ? 500 : 200);
+            response.send(loginDiagnostics);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public changePassword = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === null) {
+                throw new Error("Must supply user id in request");
+            }
+
+            const requestedChangePassword = (
+                request.body as ChangePasswordRequest
+            ).newPassword;
+
+            const result = await this.userService.changePassword(
+                id,
+                userId,
+                requestedChangePassword,
+                request.ip,
+            );
+
+            response.status(result?.data ?? false ? 200 : 400);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public deleteUser = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error("Must pass user id in request");
+            }
+
+            const result = await this.userService.deleteUser(
+                id,
+                userId,
+                request.ip,
+            );
+
+            const { data } = result;
+
+            response.status(data ?? false ? 200 : 400);
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

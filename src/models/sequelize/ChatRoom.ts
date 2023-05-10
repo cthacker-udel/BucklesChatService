@@ -10,7 +10,7 @@ export class ChatRoom extends Model<
     InferCreationAttributes<ChatRoom>
 > {
     declare createdAt?: Date;
-    declare createdBy: string;
+    declare createdBy: number;
     declare description?: string;
     declare name: string;
     declare updatedAt?: Date;

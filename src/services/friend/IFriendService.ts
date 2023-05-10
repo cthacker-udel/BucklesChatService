@@ -1,33 +1,35 @@
+/* eslint-disable @typescript-eslint/indent -- disabled */
 import { FriendRequestDTO } from "../../@types/friend/FriendRequestDTO";
 import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessagePayload";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
+import { User } from "../../models/sequelize/User";
 
 export interface IFriendService {
     /**
      * Verifies if the friend request already exists in the database
      *
-     * @param _usernameTo - The username receiving the request
-     * @param _usernameFrom - The username sending the request
+     * @param _idTo - The id of the user receiving the request
+     * @param _idFrom - The id of the user sending the request
      * @returns Whether or not the friend request already exists in the database
      */
     doesFriendRequestExist: (
-        _usernameTo: string,
-        _usernameFrom: string,
+        _idTo: number,
+        _idFrom: number,
     ) => Promise<boolean>;
 
     /**
      * Attempts to send a friend request from usernameFrom, to usernameTo
      *
      * @param _id - The id to track the transaction
-     * @param _usernameTo - The username which is receiving the friend request
-     * @param _usernameFrom - The username which is sending the friend request
+     * @param _userToId - The user id which is receiving the friend request
+     * @param _userFromId - The user id which is sending the friend request
      * @param _customMessage - The custom message which we are sending along with the friend request
      * @returns - Whether or not the friend request was successful
      */
     sendRequest: (
         _id: string,
-        _usernameTo: string,
-        _usernameFrom: string,
+        _userToId: number,
+        _userFromId: number,
         _customMessage?: string,
     ) => Promise<ApiResponse<boolean>>;
 
@@ -35,52 +37,59 @@ export interface IFriendService {
      * Finds all friends available for request
      *
      * @param _id - The id to track the transaction
-     * @param _username - The username which is requesting the available friends from
+     * @param _userId - The user id which is requesting the available friends from
      * @returns - The list of friends available for request
      */
     availableFriends: (
         _id: string,
-        _username: string,
-    ) => Promise<ApiResponse<string[]>>;
+        _userId: number,
+    ) => Promise<
+        ApiResponse<
+            Pick<
+                User,
+                "createdAt" | "handle" | "id" | "profileImageUrl" | "username"
+            >[]
+        >
+    >;
 
     /**
      * Gets all pending friend requests for the user specified
      *
      * @param _id - The id to track the transaction
-     * @param _username - the username which is requesting to fetch all of it's pending friend requests
+     * @param _userId - the user id which is requesting to fetch all of it's pending friend requests
      * @returns - The list of pending friend requests
      */
     pendingRequests: (
         _id: string,
-        _username: string,
+        _userId: number,
     ) => Promise<ApiResponse<FriendRequestDTO[]>>;
 
     /**
      * Accepts the friend request sent to the user (usernameTo)
      *
      * @param _id - The id to track the transaction
-     * @param _usernameTo - The username whom received the friend request
-     * @param _usernameFrom - The username where the request was coming from
+     * @param _userIdTo - The user id whom received the friend request
+     * @param _userIdFrom - The user id where the request was coming from
      * @returns - Whether the request was successfully accepted or not
      */
     acceptRequest: (
         _id: string,
-        _usernameTo: string,
-        _usernameFrom: string,
+        _userIdTo: number,
+        _userIdFrom: number,
     ) => Promise<ApiResponse<boolean>>;
 
     /**
      * Rejects the friend request sent to the user (usernameTo)
      *
      * @param _id - The id to track the transaction
-     * @param _usernameTo - The username whom received the friend request
-     * @param _usernameFrom - The username whom sent the request
+     * @param _userIdTo - The user id whom received the friend request
+     * @param _userIdFrom - The user id whom sent the request
      * @returns - Whether the request was successfully rejected or not
      */
     rejectRequest: (
         _id: string,
-        _usernameTo: string,
-        _usernameFrom: string,
+        _userIdTo: number,
+        _userIdFrom: number,
     ) => Promise<ApiResponse<boolean>>;
 
     /**
@@ -93,8 +102,8 @@ export interface IFriendService {
      */
     removeFriend: (
         _id: string,
-        _recipient: string,
-        _sender: string,
+        _recipient: number,
+        _sender: number,
     ) => Promise<ApiResponse<boolean>>;
 
     /**
@@ -105,27 +114,9 @@ export interface IFriendService {
      * @returns - Whether or not the friendship exists in the database
      */
     doesFriendshipExist: (
-        _recipient: string,
-        _sender: string,
+        _recipient: number,
+        _sender: number,
     ) => Promise<boolean>;
-
-    /**
-     * Sends a user a direct message
-     *
-     * @param _id - The id to track the transaction
-     * @param _receiver - The person who is receiving the message
-     * @param _sender - The person who is sending the message
-     * @param _content - The content of the message
-     * @param _senderProfilePictureUrl - The sender's profile picture URL (optional, undefined if using placeholder pfp)
-     * @returns Whether or not the message was sent
-     */
-    sendDirectMessage: (
-        _id: string,
-        _receiver: string,
-        _sender: string,
-        _content: string,
-        _senderProfilePictureUrl?: string,
-    ) => Promise<ApiResponse<boolean>>;
 
     /**
      * Fetches all pending direct messages for the user matching the username supplied in the `username` parameter

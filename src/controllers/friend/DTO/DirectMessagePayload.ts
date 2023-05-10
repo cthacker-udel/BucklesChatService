@@ -1,6 +1,6 @@
 export type DirectMessagePayload = {
     content: string;
-    receiver: string;
-    sender: string;
+    receiver: number;
+    sender?: number;
     senderProfilePictureUrl?: string;
 };

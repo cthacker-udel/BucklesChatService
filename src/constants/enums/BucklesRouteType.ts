@@ -5,4 +5,5 @@ export enum BucklesRouteType {
     PUT = 2,
     DELETE = 3,
     OPTIONS = 4,
+    PATCH = 5,
 }

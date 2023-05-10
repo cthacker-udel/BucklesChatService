@@ -106,16 +106,35 @@ export class MessageController
         );
         super.addRoutes(
             [
-                { endpoint: "thread/create", handler: this.createThread },
+                {
+                    endpoint: "thread/create",
+                    handler: this.createThread,
+                    middleware: [authToken],
+                },
                 {
                     endpoint: "thread/addMessage",
                     handler: this.addMessageToThread,
+                    middleware: [authToken],
                 },
-                { endpoint: "add", handler: this.addMessage },
-                { endpoint: "chatroom/add", handler: this.createChatRoom },
+                {
+                    endpoint: "add",
+                    handler: this.addMessage,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "chatroom/add",
+                    handler: this.createChatRoom,
+                    middleware: [authToken],
+                },
                 {
                     endpoint: "chatroom/add/message",
                     handler: this.addMessageToChatRoom,
+                    middleware: [authToken],
+                },
+                {
+                    endpoint: "sendDirectMessage",
+                    handler: this.sendDirectMessage,
+                    middleware: [authToken],
                 },
             ],
             BucklesRouteType.POST,
@@ -143,29 +162,32 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
             const threadPayload = request.body as CreateThreadPayload;
-            if (
-                threadPayload.creator === undefined ||
-                threadPayload.receiver === undefined
-            ) {
-                throw new Error(
-                    "Must specify creator and receiver when creating thread",
-                );
+            if (threadPayload.receiver === undefined) {
+                throw new Error("Must specify receiver when creating thread");
             }
 
-            if (threadPayload.creator === threadPayload.receiver) {
+            const creatorId =
+                this.encryptionService.getUserIdFromRequest(request);
+
+            if (creatorId === undefined) {
+                throw new Error("Must supply valid token when creating thread");
+            }
+
+            if (creatorId === threadPayload.receiver) {
                 throw new Error("Cannot create thread for yourself");
             }
 
-            const { creator, receiver } = threadPayload;
+            const { receiver } = threadPayload;
 
             const createThreadResult = await this.messageService.createThread(
                 id,
-                creator,
+                creatorId,
                 receiver,
             );
 
             response.status(
-                createThreadResult.data !== undefined && createThreadResult.data
+                createThreadResult.data !== undefined &&
+                    createThreadResult.data >= 0
                     ? 200
                     : 400,
             );
@@ -192,16 +214,15 @@ export class MessageController
         let id = "";
         try {
             id = getIdFromRequest(request);
-            const username =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
-            if (username === undefined) {
+            if (userId === undefined) {
                 throw new Error(
                     "Must supply username when fetching threads that belong to user",
                 );
             }
 
-            const result = await this.messageService.getThreads(id, username);
+            const result = await this.messageService.getThreads(id, userId);
 
             response.status(200);
             response.send(result);
@@ -230,23 +251,16 @@ export class MessageController
 
             const body = request.body as RemoveThreadPayload;
 
-            if (
-                body === undefined ||
-                body.threadId === undefined ||
-                body.receiver === undefined ||
-                body.sender === undefined
-            ) {
+            if (body === undefined || body.threadId === undefined) {
                 throw new Error(
                     "Must supply proper body when removing a thread",
                 );
             }
 
-            const { threadId, receiver, sender } = body;
+            const { threadId } = body;
 
-            const doesThreadExist = await this.messageService.doesThreadExist(
-                receiver,
-                sender,
-            );
+            const doesThreadExist =
+                await this.messageService.doesThreadExistIdOnly(threadId);
 
             if (!doesThreadExist) {
                 throw new Error("Thread does not exist");
@@ -332,7 +346,7 @@ export class MessageController
 
             const threadMessages = await this.messageService.getThreadMessages(
                 id,
-                threadId,
+                Number.parseInt(threadId, 10),
             );
 
             response.status(200);
@@ -360,15 +374,14 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
 
-            const username =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
-            if (username === undefined || username.length === 0) {
-                throw new Error("Must supply username to fetch thread data");
+            if (userId === undefined) {
+                throw new Error("Must supply user id to fetch thread data");
             }
 
             const threadsWithMessages =
-                await this.messageService.getThreadsWithMessages(id, username);
+                await this.messageService.getThreadsWithMessages(id, userId);
 
             response.status(200);
             response.send(threadsWithMessages);
@@ -396,7 +409,7 @@ export class MessageController
             id = getIdFromRequest(request);
             const payload = request.body as DirectMessagePayload;
             payload.sender =
-                this.encryptionService.getUsernameFromRequest(request);
+                this.encryptionService.getUserIdFromRequest(request);
 
             if (payload.content === undefined) {
                 throw new Error(
@@ -432,16 +445,15 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
 
-            const username =
-                this.encryptionService.getUsernameFromRequest(request);
+            const userId = this.encryptionService.getUserIdFromRequest(request);
 
-            if (username === undefined) {
-                throw new Error("Must supply username");
+            if (userId === undefined) {
+                throw new Error("Must supply user id in token");
             }
 
             const result = await this.messageService.pendingDirectMessages(
                 id,
-                username,
+                userId,
             );
 
             response.status(result.data === undefined ? 400 : 200);
@@ -469,7 +481,10 @@ export class MessageController
         try {
             id = getIdFromRequest(request);
 
-            const payload = request.body as ChatRoom;
+            const payload = request.body as Partial<ChatRoom>;
+
+            payload.createdBy =
+                this.encryptionService.getUserIdFromRequest(request);
 
             if (payload.createdBy === undefined || payload.name === undefined) {
                 throw new Error(
@@ -634,6 +649,61 @@ export class MessageController
 
             response.status(200);
             response.send(allMessages);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public sendDirectMessage = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const directMessagePayload = request.body as DirectMessagePayload;
+
+            const sender = this.encryptionService.getUserIdFromRequest(request);
+
+            if (
+                directMessagePayload.receiver === undefined ||
+                directMessagePayload.content === undefined
+            ) {
+                throw new Error(
+                    "Must provide valid fields when sending direct message",
+                );
+            }
+
+            if (sender === undefined) {
+                throw new Error(
+                    "Must supply token when making request to send direct message",
+                );
+            }
+
+            const { content, receiver } = directMessagePayload;
+
+            const result = await this.messageService.sendDirectMessage(
+                id,
+                receiver,
+                sender,
+                content,
+            );
+
+            response.status(
+                result.data !== undefined && result.data ? 200 : 400,
+            );
+            response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(
                 id,

@@ -9,9 +9,9 @@ export class Block extends Model<
     InferAttributes<Block>,
     InferCreationAttributes<Block>
 > {
-    declare username: string;
+    declare blocked: number;
     declare reason?: string;
-    declare sender: string;
+    declare sender: number;
     declare createdAt?: Date;
     declare updatedAt?: Date;
     declare id?: number;

@@ -130,4 +130,83 @@ export interface IUserController {
      * @returns 200 if successfully sent, else otherwise
      */
     confirmEmail: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Refreshes the current logged in user's status
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if status successfully updated in redis database
+     */
+    refreshUserState: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Gets the current time of the user's state expiration entry in the redis database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the status is successfully updated in the redis database
+     */
+    pingUserStateExpiration: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
+
+    /**
+     * Clears the user status from the redis database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the status was successfully cleared in the redis database
+     */
+    clearUserState: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Clears the throttle keys from the redis database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the keys were successfully cleared, else if not
+     */
+    clearCacheThrottleKeys: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
+
+    /**
+     * !!WARNING!!
+     * Flushes the entire redis cache
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the flush was successful, else if not
+     */
+    flushCache: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Retrieves the login diagnostic stats (total users, total online, and total messages)
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the fetch was successful, else if not
+     */
+    loginDiagnostics: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Changes the user's password to the one supplied
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the change was successful, else if not
+     */
+    changePassword: (_request: Request, _response: Response) => Promise<void>;
+
+    /**
+     * Deletes the user from the database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns 200 if the delete was successful, else if not
+     */
+    deleteUser: (_request: Request, _response: Response) => Promise<void>;
 }

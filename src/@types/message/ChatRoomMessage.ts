@@ -1,6 +1,6 @@
 export type ChatRoomMessage = {
     content: string;
     createdAt?: Date;
-    sender: string;
+    sender: number;
     senderProfilePictureUrl?: string;
 };

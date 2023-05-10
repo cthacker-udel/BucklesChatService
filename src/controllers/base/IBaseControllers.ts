@@ -32,4 +32,12 @@ export interface IBaseController {
      * @returns Whether or not the service is up
      */
     statusCheck: (_request: Request, _response: Response) => void;
+
+    /**
+     * Sets the status function of the BaseController instance
+     *
+     * @param _statusFunction - The status function used to determine if the services are online
+     * @returns The modified instance
+     */
+    setStatusFunction: (_statusFunction: () => void) => IBaseController;
 }

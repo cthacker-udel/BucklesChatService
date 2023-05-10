@@ -2,6 +2,7 @@ export type DirectMessage = {
     content: string;
     createdAt: Date;
     id: number;
-    receiver: string;
-    sender: string;
+    receiver: number;
+    sender: number;
+    senderProfilePictureUrl?: string;
 };

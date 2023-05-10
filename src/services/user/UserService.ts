@@ -1,9 +1,10 @@
+/* eslint-disable max-lines -- disabled */
+/* eslint-disable @typescript-eslint/indent -- disabled */
 /* eslint-disable implicit-arrow-linebreak -- disabled */
 
 import { IUserService } from "./IUserService";
 import { PSqlService } from "../psql/PSqlService";
 import { ApiResponse } from "../../models/api/response/ApiResponse";
-import { LoggerService } from "../logger/LoggerService";
 import { DbUser } from "../../@types/user/DbUser";
 import { EncryptionService } from "../encryption/EncryptionService";
 import { RedisService } from "../redis/RedisService";
@@ -12,6 +13,12 @@ import { Literal, Op } from "@sequelize/core";
 import { User } from "../../models/sequelize/User";
 import { DashboardInformation } from "../../@types/user/DashboardInformation";
 import { EmailService } from "../email/EmailService";
+import { Friend } from "../../models/sequelize/Friend";
+import { ActiveStatus, ActiveStatusType } from "../../@types/user/ActiveStatus";
+import { ThrottleStatus } from "../../@types/user/ThrottleStatus";
+import { LoginResponse } from "../../@types/user/LoginResponse";
+import { numericalConverter } from "../../helpers/NumericalConverter/numericalConverter";
+import { LoginDiagnostics } from "../../@types/app/LoginDiagnostics";
 
 export class UserService implements IUserService {
     /**
@@ -20,9 +27,9 @@ export class UserService implements IUserService {
     private readonly psqlClient: PSqlService;
 
     /**
-     * The LoggerService instance used for logging exceptions to the mongo database
+     * The Encryption service used for all password + cookie operations regarding the user
      */
-    private readonly loggerService: LoggerService;
+    private readonly encryptionService: EncryptionService;
 
     /**
      * The redis service instance used to access the database
@@ -35,22 +42,27 @@ export class UserService implements IUserService {
     private readonly sendgridService: EmailService;
 
     /**
-     * Three-arg constructor, takes in a sql client used for interacting with the database that stores user information,
-     * and takes in an LoggerService instance used for logging exceptions to the mongo database.
+     * 4-arg constructor, taking in all necessary services to operate correctly.
+     * Takes in primarily the postgres client used for accessing and querying the database.
+     * Takes in the encryption service used for hashing and cookie operations.
+     * Takes in the redis service which is used for user state, and throttling service.
+     * Takes in the sendgrid service which is used to send confirmation emails.
      *
-     * @param _psqlClient - The psql client which is used to access user information
-     * @param _loggerService - The logger service which is used to add logs to the mongo database
+     * @param _psqlClient - The postgres client, instantiated in the root application and passed down from the controller
+     * @param _encryptionService - The encryption service, used for hashing and all encryption needs
+     * @param _redisService - The redis client instance, used for operations involving the user state, and cookies
+     * @param _sendgridService - The sendgrid client instance, used for all operations involving the sendgrid api (emails, automation, etc)
      */
     public constructor(
         _psqlClient: PSqlService,
-        _loggerService: LoggerService,
+        _encryptionService: EncryptionService,
         _redisService: RedisService,
         _sendgridService: EmailService,
     ) {
         this.psqlClient = _psqlClient;
-        this.loggerService = _loggerService;
         this.redisService = _redisService;
         this.sendgridService = _sendgridService;
+        this.encryptionService = _encryptionService;
     }
 
     /** @inheritdoc */
@@ -60,6 +72,21 @@ export class UserService implements IUserService {
         });
         return new ApiResponse<boolean>(id).setData(Boolean(doesUserExist));
     };
+
+    /** @inheritdoc */
+    public doesFriendshipExist = async (
+        id: string,
+        userIdOne: number,
+        userIdTwo: number,
+    ): Promise<boolean> =>
+        (await this.psqlClient.friendRepo.findOne({
+            where: {
+                [Op.or]: [
+                    { recipient: userIdOne, sender: userIdTwo },
+                    { recipient: userIdTwo, sender: userIdOne },
+                ],
+            },
+        })) !== null;
 
     /** @inheritdoc */
     public createUser = async (
@@ -99,19 +126,42 @@ export class UserService implements IUserService {
     };
 
     /** @inheritdoc */
+    public findUserEncryptionDataId = async (
+        userId: number,
+    ): Promise<Pick<User, "password" | "passwordSalt">> => {
+        const foundUserEncryptionData = await this.psqlClient.userRepo.findOne({
+            attributes: [["password_salt", "passwordSalt"], "password"],
+            where: {
+                id: userId,
+            },
+        });
+
+        if (foundUserEncryptionData === null) {
+            throw new Error("No user exists with the id supplied!");
+        }
+
+        return foundUserEncryptionData.dataValues;
+    };
+
+    /** @inheritdoc */
     public login = async (
         id: string,
         user: Partial<DbUser>,
-    ): Promise<ApiResponse<boolean>> => {
+    ): Promise<[ApiResponse<LoginResponse>, number]> => {
         const { username, password } = user;
         if (username === undefined || password === undefined) {
-            return new ApiResponse<boolean>(
-                id,
-                false,
-                new ApiErrorInfo(id).initException(
-                    new Error("Must supply proper credentials when logging in"),
+            return [
+                new ApiResponse(
+                    id,
+                    { loggedIn: false } as LoginResponse,
+                    new ApiErrorInfo(id).initException(
+                        new Error(
+                            "Must supply proper credentials when logging in",
+                        ),
+                    ),
                 ),
-            );
+                -1,
+            ];
         }
 
         const foundEncryptedPasswordSalt = await this.findUserEncryptionData(
@@ -122,13 +172,31 @@ export class UserService implements IUserService {
             foundEncryptedPasswordSalt.passwordSalt === undefined ||
             foundEncryptedPasswordSalt.password === undefined
         ) {
-            return new ApiResponse<boolean>(
-                id,
-                false,
-                new ApiErrorInfo(id).initException(
-                    new Error("No encryption data available for user"),
+            return [
+                new ApiResponse(
+                    id,
+                    { loggedIn: false } as LoginResponse,
+                    new ApiErrorInfo(id).initException(
+                        new Error("No encryption data available for user"),
+                    ),
                 ),
-            );
+                -1,
+            ];
+        }
+
+        const foundUserId = await this.findUserIdFromUsername(username);
+
+        if (foundUserId === undefined) {
+            return [
+                new ApiResponse(
+                    id,
+                    { loggedIn: false } as LoginResponse,
+                    new ApiErrorInfo(id).initException(
+                        new Error("No user id found for username supplied"),
+                    ),
+                ),
+                -1,
+            ];
         }
 
         const fixedEncryptionResult =
@@ -137,10 +205,54 @@ export class UserService implements IUserService {
                 password,
             );
 
-        return new ApiResponse(
-            id,
-            fixedEncryptionResult === foundEncryptedPasswordSalt.password,
-        );
+        const isValidLogin =
+            fixedEncryptionResult === foundEncryptedPasswordSalt.password;
+
+        if (isValidLogin) {
+            await this.refreshUserState(id, foundUserId);
+        }
+
+        return [
+            new ApiResponse(id, { lockedUntil: 0, loggedIn: isValidLogin }),
+            foundUserId,
+        ];
+    };
+
+    /** @inheritdoc */
+    public logout = async (
+        id: string,
+        userId: number,
+        ip: string,
+    ): Promise<boolean> => {
+        try {
+            const foundUser = await this.psqlClient.userRepo.findOne({
+                where: { id: userId },
+            });
+
+            if (foundUser === undefined) {
+                throw new Error("User does not exist");
+            }
+
+            // set as offline
+            const [updatedUserState] = await this.psqlClient.userRepo.update(
+                { status: ActiveStatusType.OFFLINE },
+                { where: { id: userId } },
+            );
+
+            // clear throttle keys from redis cache
+            await this.clearThrottleKeys(id, userId, ip);
+
+            // clear user state from cache
+            const { data: clearedUserState } = await this.clearUserState(
+                id,
+                userId,
+            );
+
+            return (updatedUserState > 0 && clearedUserState) ?? false;
+        } catch {
+            // Disregard error, return that logout failed
+            return false;
+        }
     };
 
     /** @inheritdoc */
@@ -185,53 +297,95 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public removeUser = async (
         id: string,
-        username: string,
+        fromUserId: number,
+        removingUserId: number,
     ): Promise<ApiResponse<boolean>> => {
-        const isUsernameInTable = await this.doesUsernameExist(id, username);
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            where: { id: removingUserId },
+        });
+
+        if (foundUser === null) {
+            return new ApiResponse(id, false);
+        }
+
+        const isUsernameInTable = await this.doesUsernameExist(
+            id,
+            foundUser.username,
+        );
 
         if (!(isUsernameInTable.data ?? true)) {
             throw new Error("Username is not present in database");
         }
 
+        const doesFriendshipExist = await this.doesFriendshipExist(
+            id,
+            fromUserId,
+            removingUserId,
+        );
+
+        if (!doesFriendshipExist) {
+            throw new Error("Friendship does not exist between the 2 users");
+        }
+
         const removalResult = await this.psqlClient.userRepo?.destroy({
-            where: { username },
+            where: { id: removingUserId },
         });
 
         if (removalResult === 0 || removalResult === undefined) {
             throw new Error("Unable to remove user");
         }
 
-        return new ApiResponse<boolean>(id, removalResult > 0);
+        return new ApiResponse(id, removalResult > 0);
     };
 
     /** @inheritdoc */
     public editUser = async (
         id: string,
-        username: string,
-        userPayload: DbUser,
+        userId: number,
+        userPayload: Omit<
+            DbUser,
+            "id" | "password" | "passwordSalt" | "username"
+        >,
     ): Promise<ApiResponse<boolean>> => {
-        const isUsernameInTable = await this.doesUsernameExist(id, username);
+        const foundUsername = await this.findUsernameFromUserId(userId);
+
+        if (foundUsername === undefined) {
+            return new ApiResponse(id, false);
+        }
+
+        const isUsernameInTable = await this.doesUsernameExist(
+            id,
+            foundUsername,
+        );
 
         if (!(isUsernameInTable.data ?? false)) {
             throw new Error("Username does not exist in table");
         }
 
-        const request = await this.psqlClient.userRepo?.update(userPayload, {
-            where: { username },
-        });
+        const [updatedCount] = await this.psqlClient.userRepo.update(
+            userPayload,
+            {
+                where: { id: userId },
+            },
+        );
 
-        if (request === undefined) {
+        if (updatedCount === 0) {
             return new ApiResponse<boolean>(id, false);
         }
 
-        const numberAffected = request[0];
-
-        return new ApiResponse<boolean>(id, numberAffected > 0);
+        return new ApiResponse<boolean>(id, updatedCount > 0);
     };
 
     /** @inheritdoc */
-    public usersOnline = async (id: string): Promise<ApiResponse<number>> =>
-        new ApiResponse(id, await this.redisService.client.dbSize());
+    public totalUsersOnline = async (
+        id: string,
+    ): Promise<ApiResponse<number>> =>
+        new ApiResponse(
+            id,
+            await this.psqlClient.userRepo.count({
+                where: { status: ActiveStatusType.ONLINE },
+            }),
+        );
 
     /** @inheritdoc */
     public totalUsers = async (id: string): Promise<ApiResponse<number>> => {
@@ -240,11 +394,32 @@ export class UserService implements IUserService {
     };
 
     /** @inheritdoc */
+    public totalMessages = async (id: string): Promise<ApiResponse<number>> => {
+        const total = await this.psqlClient.messageRepo.count();
+        return new ApiResponse(id, total);
+    };
+
+    /** @inheritdoc */
+    public loginDiagnostics = async (
+        id: string,
+    ): Promise<ApiResponse<LoginDiagnostics>> => {
+        const { data: totalMessages } = await this.totalMessages(id);
+        const { data: totalUsers } = await this.totalUsers(id);
+        const { data: totalOnline } = await this.totalUsersOnline(id);
+
+        return new ApiResponse(id, {
+            totalMessages,
+            totalOnline,
+            totalUsers,
+        } as LoginDiagnostics);
+    };
+
+    /** @inheritdoc */
     public dashboardInformation = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<DashboardInformation>> => {
-        const queryResult = await this.psqlClient.userRepo?.findOne({
+        const queryResult = await this.psqlClient.userRepo.findOne({
             attributes: [
                 "handle",
                 ["profile_image_url", "profileImageUrl"],
@@ -252,21 +427,21 @@ export class UserService implements IUserService {
                 ["created_at", "createdAt"],
                 "username",
             ],
-            where: { username },
+            where: { id: userId },
         });
 
         const { data: numberOfFriends } = await this.numberOfFriends(
             id,
-            username,
+            userId,
         );
 
         const { data: numberOfMessages } = await this.numberOfMessages(
             id,
-            username,
+            userId,
         );
 
         const { data: bulkFriendsDashboardInformation } =
-            await this.friendsDashboardInformation(id, username);
+            await this.friendsDashboardInformation(id, userId);
 
         if (!queryResult) {
             return new ApiResponse(id);
@@ -285,17 +460,31 @@ export class UserService implements IUserService {
         id: string,
         usernames: string[],
     ): Promise<ApiResponse<DashboardInformation[]>> => {
-        const queryResult = await this.psqlClient.userRepo?.findAll({
+        const foundUsers = await this.psqlClient.userRepo.findAll({
+            attributes: ["id"],
+            where: {
+                username: {
+                    [Op.in]: usernames,
+                },
+            },
+        });
+
+        const userIds = foundUsers.map(
+            (eachUser: User) => eachUser.id as number,
+        );
+
+        const queryResult = await this.psqlClient.userRepo.findAll({
             attributes: [
                 "handle",
                 ["profile_image_url", "profileImageUrl"],
                 ["created_at", "createdAt"],
                 "username",
+                "id",
             ],
             order: [["username", "ASC"]],
             where: {
-                username: {
-                    [Op.in]: usernames,
+                id: {
+                    [Op.in]: userIds,
                 },
             },
         });
@@ -316,9 +505,9 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public details = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<DashboardInformation>> => {
-        const queryResult = await this.psqlClient.userRepo?.findOne({
+        const queryResult = await this.psqlClient.userRepo.findOne({
             attributes: [
                 ["first_name", "firstName"],
                 ["last_name", "lastName"],
@@ -328,7 +517,7 @@ export class UserService implements IUserService {
                 "dob",
                 "username",
             ],
-            where: { username },
+            where: { id: userId },
         });
 
         if (!queryResult) {
@@ -344,11 +533,11 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public numberOfFriends = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<number>> => {
         const queryResult = await this.psqlClient.friendRepo.findAll({
             attributes: ["sender", "recipient"],
-            where: { [Op.or]: [{ recipient: username }, { sender: username }] },
+            where: { [Op.or]: [{ recipient: userId }, { sender: userId }] },
         });
 
         return new ApiResponse(id, queryResult.length);
@@ -357,10 +546,10 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public numberOfMessages = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<number>> => {
         const queryResult = await this.psqlClient.messageRepo.findAll({
-            where: { sender: username },
+            where: { sender: userId },
         });
         return new ApiResponse(id, queryResult.length);
     };
@@ -368,24 +557,52 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public friendsDashboardInformation = async (
         id: string,
-        username: string,
+        userId: number,
     ): Promise<ApiResponse<DashboardInformation[]>> => {
-        const sentFriendUsernames = await this.psqlClient.friendRepo.findAll({
-            attributes: ["recipient"],
-            where: { sender: username },
-        });
-        const receivedUsernames = await this.psqlClient.friendRepo.findAll({
-            attributes: ["sender"],
-            where: { recipient: username },
-        });
+        const friendsFromYourRequest = await this.psqlClient.friendRepo.findAll(
+            {
+                attributes: ["recipient"],
+                where: { sender: userId },
+            },
+        );
+
+        const friendsFromTheirRequest =
+            await this.psqlClient.friendRepo.findAll({
+                attributes: ["sender"],
+                where: { recipient: userId },
+            });
+
+        const usernamesOfFriendsFromYourRequest =
+            await this.psqlClient.userRepo.findAll({
+                attributes: ["username"],
+                where: {
+                    id: {
+                        [Op.in]: friendsFromYourRequest.map(
+                            (eachFriend) => eachFriend.recipient,
+                        ),
+                    },
+                },
+            });
+
+        const usernamesOfFriendsFromTheirRequest =
+            await this.psqlClient.userRepo.findAll({
+                attributes: ["username"],
+                where: {
+                    id: {
+                        [Op.in]: friendsFromTheirRequest.map(
+                            (eachFriend: Friend) => eachFriend.sender,
+                        ),
+                    },
+                },
+            });
 
         const amalgamatedUsernames = [
             ...new Set(
-                sentFriendUsernames
-                    .map((eachFriend) => eachFriend.recipient)
+                usernamesOfFriendsFromYourRequest
+                    .map((eachFriend) => eachFriend.username)
                     .concat(
-                        receivedUsernames.map(
-                            (eachFriend) => eachFriend.sender,
+                        usernamesOfFriendsFromTheirRequest.map(
+                            (eachFriend) => eachFriend.username,
                         ),
                     ),
             ),
@@ -432,7 +649,7 @@ export class UserService implements IUserService {
     /** @inheritdoc */
     public confirmEmail = async (
         id: string,
-        username: string,
+        userId: number,
         confirmationToken: string,
     ): Promise<ApiResponse<boolean>> => {
         const foundUser = await this.psqlClient.userRepo.findOne({
@@ -440,7 +657,7 @@ export class UserService implements IUserService {
                 ["email_confirmation_token", "emailConfirmationToken"],
                 ["is_email_confirmed", "isEmailConfirmed"],
             ],
-            where: { username },
+            where: { id: userId },
         });
 
         if (foundUser?.isEmailConfirmed ?? false) {
@@ -456,7 +673,7 @@ export class UserService implements IUserService {
                 emailConfirmationToken: new Literal(null),
                 isEmailConfirmed: true,
             },
-            { where: { username } },
+            { where: { id: userId } },
         );
 
         return new ApiResponse(id, updatedEntities > 0);
@@ -498,5 +715,433 @@ export class UserService implements IUserService {
         });
 
         return new ApiResponse(id, confirmationEmailResponse);
+    };
+
+    /** @inheritdoc */
+    public findUserIdFromUsername = async (
+        username: string,
+    ): Promise<number | undefined> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            attributes: ["id"],
+            where: { username },
+        });
+
+        if (foundUser?.id === undefined) {
+            return undefined;
+        }
+
+        return foundUser.id;
+    };
+
+    /** @inheritdoc */
+    public findUsernameFromUserId = async (
+        userId: number,
+    ): Promise<string | undefined> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            attributes: ["username"],
+            where: { id: userId },
+        });
+
+        if (foundUser === null) {
+            return undefined;
+        }
+
+        return foundUser.username;
+    };
+
+    /** @inheritdoc */
+    public refreshUserState = async (
+        id: string,
+        userId: number,
+    ): Promise<ApiResponse<boolean>> => {
+        const result = await this.redisService.client.set(
+            `user_state_${userId}`,
+            `${
+                Number.parseInt(
+                    process.env
+                        .STATE_EXPIRATION_TIME_SECONDS as unknown as string,
+                    10,
+                ) * 1000
+            }`,
+            {
+                EX: process.env
+                    .STATE_EXPIRATION_TIME_SECONDS as unknown as number,
+            },
+        );
+
+        return new ApiResponse(id, result !== null);
+    };
+
+    /** @inheritdoc */
+    public isUserStateInCache = async (userId: number): Promise<boolean> => {
+        const result = await this.redisService.client.exists(
+            `user_state_${userId}`,
+        );
+
+        return result > 0;
+    };
+
+    /** @inheritdoc */
+    public expireTimeOfUserState = async (
+        id: string,
+        userId: number,
+    ): Promise<ApiResponse<ActiveStatus>> => {
+        const timeLeft = await this.redisService.client.pTTL(
+            `user_state_${userId}`,
+        );
+
+        if (timeLeft < 0) {
+            throw new Error(
+                timeLeft === -1
+                    ? "No expire time set for this entry"
+                    : "The key does not exist",
+            );
+        }
+
+        const setTime = await this.redisService.client.get(
+            `user_state_${userId}`,
+        );
+
+        if (setTime === null) {
+            throw new Error("Key does not exist");
+        }
+
+        const timeElapsed = Number.parseInt(setTime, 10) - timeLeft;
+
+        const isAway =
+            timeElapsed >
+                Number.parseInt(
+                    process.env.STATE_EXPIRATION_AWAY_THRESHOLD as string,
+                    10,
+                ) && timeElapsed > 0;
+
+        const currentStatus =
+            timeElapsed <= 0 || timeLeft <= 0
+                ? ActiveStatusType.OFFLINE
+                : ActiveStatusType.ONLINE;
+
+        await this.psqlClient.userRepo.update(
+            {
+                status: isAway ? ActiveStatusType.AWAY : currentStatus,
+            },
+            { where: { id: userId } },
+        );
+
+        return new ApiResponse(id, {
+            status: isAway ? ActiveStatusType.AWAY : currentStatus,
+            timeLeft,
+        });
+    };
+
+    /** @inheritdoc */
+    public clearUserState = async (
+        id: string,
+        userId: number,
+    ): Promise<ApiResponse<boolean>> => {
+        const removalResult = await this.redisService.client.del(
+            `user_state_${userId}`,
+        );
+
+        if (removalResult === 0) {
+            return new ApiResponse(id, false);
+        }
+
+        return new ApiResponse(id, true);
+    };
+
+    /** @inheritdoc */
+    public setThrottleStatus = async (key: string): Promise<ThrottleStatus> => {
+        const newStatus: ThrottleStatus = {
+            failedAttempts: 0,
+            lockedAt: 0,
+        };
+        const settingStatus = await this.redisService.client.set(
+            `${key}_throttle_status`,
+            JSON.stringify(newStatus),
+            { EX: numericalConverter.minutes.toSeconds(5) },
+        );
+
+        if (settingStatus === null) {
+            throw new Error("Unable to set throttle status");
+        }
+
+        return newStatus;
+    };
+
+    /** @inheritdoc */
+    public getThrottleStatusIp = async (
+        ip: string,
+    ): Promise<ThrottleStatus> => {
+        const throttleStatus = await this.redisService.client.get(
+            `${ip}_throttle_status`,
+        );
+
+        if (throttleStatus === null) {
+            const createdThrottleStatus = await this.setThrottleStatus(ip);
+            return createdThrottleStatus;
+        }
+
+        return JSON.parse(throttleStatus) as ThrottleStatus;
+    };
+
+    /** @inheritdoc */
+    public getThrottleStatusUsername = async (
+        username: string,
+    ): Promise<ThrottleStatus> => {
+        const throttleStatus = await this.redisService.client.get(
+            `${username}_throttle_status`,
+        );
+
+        if (throttleStatus === null) {
+            const createdThrottleStatus = await this.setThrottleStatus(
+                username,
+            );
+            return createdThrottleStatus;
+        }
+
+        return JSON.parse(throttleStatus) as ThrottleStatus;
+    };
+
+    /** @inheritdoc */
+    public incrementThrottleStatus = async (key: string): Promise<boolean> => {
+        const exists = await this.redisService.client.exists(
+            `${key}_throttle_status`,
+        );
+
+        if (exists === 0) {
+            await this.setThrottleStatus(key);
+        }
+
+        const throttleStatus = await this.redisService.client.get(
+            `${key}_throttle_status`,
+        );
+
+        if (throttleStatus === null) {
+            return false;
+        }
+
+        const convertedThrottleStatus = JSON.parse(
+            throttleStatus,
+        ) as ThrottleStatus;
+
+        const updateResult = await this.redisService.client.set(
+            `${key}_throttle_status`,
+            JSON.stringify({
+                ...convertedThrottleStatus,
+                failedAttempts: convertedThrottleStatus.failedAttempts + 1,
+            } as ThrottleStatus),
+        );
+
+        return updateResult !== null;
+    };
+
+    /** @inheritdoc */
+    public evaluateThrottleStatus = async (
+        key: string,
+        type: "IP" | "USERNAME",
+    ): Promise<[isThrottled: boolean, lockedUntil: number]> => {
+        const throttleStatus = await this.redisService.client.get(
+            `${key}_throttle_status`,
+        );
+
+        if (throttleStatus === null) {
+            await this.setThrottleStatus(key);
+            return [false, 0];
+        }
+
+        const convertedThrottleStatus = JSON.parse(
+            throttleStatus,
+        ) as ThrottleStatus;
+
+        const { failedAttempts, lockedAt } = convertedThrottleStatus;
+        const minutesLimit = Number(
+            process.env[`FAILED_${type}_ATTEMPTS_${failedAttempts}`],
+        );
+
+        if (!isNaN(minutesLimit) && lockedAt === 0) {
+            // update the locked at in the database with the current time, and return the current time + the time remaining
+            await this.redisService.client.set(
+                `${key}_throttle_status`,
+                JSON.stringify({
+                    ...convertedThrottleStatus,
+                    lockedAt: Date.now(),
+                }),
+            );
+            return [
+                true,
+                Date.now() +
+                    numericalConverter.minutes.toMilliseconds(minutesLimit),
+            ];
+        }
+
+        const timeThreshold =
+            numericalConverter.minutes.toMilliseconds(minutesLimit);
+        const timeBetween = Date.now() - lockedAt;
+
+        if (timeBetween >= timeThreshold) {
+            // If the time has elapsed, update value in cache
+            const updatedThrottleStatus = {
+                failedAttempts:
+                    convertedThrottleStatus.failedAttempts === 30
+                        ? 0
+                        : convertedThrottleStatus.failedAttempts,
+                lockedAt: 0,
+            } as ThrottleStatus;
+            await this.redisService.client.set(
+                `${key}_throttle_status`,
+                JSON.stringify(updatedThrottleStatus),
+                { EX: numericalConverter.minutes.toSeconds(minutesLimit + 5) },
+            );
+            return [false, 0];
+        }
+
+        if (isNaN(minutesLimit)) {
+            return [false, 0];
+        }
+
+        return [
+            true,
+            lockedAt + numericalConverter.minutes.toMilliseconds(minutesLimit),
+        ];
+    };
+
+    /** @inheritdoc */
+    public clearThrottleKeys = async (
+        id: string,
+        userId: number,
+        ip: string,
+    ): Promise<ApiResponse<[ip: boolean, username: boolean]>> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            attributes: ["username"],
+            where: { id: userId },
+        });
+
+        if (foundUser === null) {
+            throw new Error("User must exist");
+        }
+
+        const removeIpKeyResult = await this.redisService.client.del(
+            `${ip}_throttle_status`,
+        );
+        const removeUsernameResult = await this.redisService.client.del(
+            `${foundUser.username}_throttle_status`,
+        );
+
+        return new ApiResponse(id, [
+            removeIpKeyResult > 0,
+            removeUsernameResult > 0,
+        ]);
+    };
+
+    /** @inheritdoc */
+    public clearKey = async (key: string): Promise<boolean> => {
+        const result = await this.redisService.client.del(key);
+
+        return result > 0;
+    };
+
+    /** @inheritdoc */
+    public flushCache = async (id: string): Promise<ApiResponse<boolean>> => {
+        const result = await this.redisService.client.flushDb();
+
+        return new ApiResponse(id, result !== null);
+    };
+
+    /** @inheritdoc */
+    public changePassword = async (
+        id: string,
+        userId: number,
+        requestedChangePassword: string,
+        ip: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const { password, passwordSalt } = await this.findUserEncryptionDataId(
+            userId,
+        );
+
+        const fixedEncryption = this.encryptionService.fixedValueEncryption(
+            passwordSalt,
+            requestedChangePassword,
+        );
+
+        if (fixedEncryption === password) {
+            throw new Error("Same password used!");
+        }
+
+        const { hash, salt } = this.encryptionService.hmacEncrypt(
+            requestedChangePassword,
+        );
+
+        const [updateResult] = await this.psqlClient.userRepo.update(
+            { password: hash, passwordSalt: salt },
+            { where: { id: userId } },
+        );
+
+        if (updateResult > 0) {
+            await this.logout(id, userId, ip);
+        }
+
+        return new ApiResponse(id, updateResult > 0);
+    };
+
+    /** @inheritdoc */
+    public deleteUser = async (
+        id: string,
+        userId: number,
+        ip: string,
+    ): Promise<ApiResponse<boolean>> => {
+        const foundUser = await this.psqlClient.userRepo.findOne({
+            where: { id: userId },
+        });
+
+        if (foundUser === null) {
+            throw new Error("User does not exist");
+        }
+
+        const allThreads = await this.psqlClient.threadRepo.destroy({
+            where: { [Op.or]: [{ creator: userId }, { receiver: userId }] },
+        });
+
+        const allMessages = await this.psqlClient.messageRepo.destroy({
+            where: { [Op.or]: [{ sender: userId }, { receiver: userId }] },
+        });
+
+        const allFriendRequests =
+            await this.psqlClient.friendRequestRepo.destroy({
+                where: { [Op.or]: [{ sender: userId }, { username: userId }] },
+            });
+
+        const allFriends = await this.psqlClient.friendRepo.destroy({
+            where: { [Op.or]: [{ sender: userId }, { recipient: userId }] },
+        });
+
+        const allBlocks = await this.psqlClient.blockRepo.destroy({
+            where: { [Op.or]: [{ sender: userId }, { blocked: userId }] },
+        });
+
+        const [allChatRooms] = await this.psqlClient.chatRoomRepo.update(
+            { createdBy: new Literal(null) },
+            { where: { createdBy: userId } },
+        );
+
+        // finally, remove the user
+
+        const removedUser = await this.psqlClient.userRepo.destroy({
+            where: { id: userId },
+        });
+
+        if (removedUser > 0) {
+            await this.logout(id, userId, ip);
+        }
+
+        return new ApiResponse(
+            id,
+            removedUser > 0 &&
+                (allBlocks >= 0 ||
+                    allFriends >= 0 ||
+                    allMessages >= 0 ||
+                    allThreads >= 0 ||
+                    allFriendRequests >= 0 ||
+                    allChatRooms >= 0),
+        );
     };
 }

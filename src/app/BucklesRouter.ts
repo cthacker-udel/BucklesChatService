@@ -84,6 +84,16 @@ export class BucklesRouter implements IBucklesRouter {
                         );
                         break;
                     }
+                    case "patch": {
+                        this.router.patch(
+                            `/${this.prefix}/${eachRoute.endpoint}`,
+                            [
+                                ...(eachRoute.middleware ?? []),
+                                eachRoute.handler,
+                            ],
+                        );
+                        break;
+                    }
                     default: {
                         break;
                     }

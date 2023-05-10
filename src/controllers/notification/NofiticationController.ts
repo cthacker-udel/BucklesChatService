@@ -13,6 +13,7 @@ import { ApiErrorInfo } from "../../models/api/errorInfo/ApiErrorInfo";
 import { getIdFromRequest } from "../../helpers/api/getIdFromRequest";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
 import { authToken } from "../../middleware/authtoken/authtoken";
+import { MongoService } from "../../services/mongo/MongoService";
 
 export class NotificationController
     extends BaseController
@@ -24,7 +25,12 @@ export class NotificationController
     private readonly psqlClient: PSqlService;
 
     /**
-     * Logger controller used for logging exceptions to the mongo database
+     * Mongo service used for logging exceptions to the mongo database
+     */
+    private readonly mongoService: MongoService;
+
+    /**
+     * Logging service used for logging exceptions/events to the mongo database
      */
     private readonly loggerService: LoggerService;
 
@@ -43,16 +49,17 @@ export class NotificationController
      * the user experiences
      *
      * @param _psqlService - The psql client used for accessing the database
+     * @param _mongoService - The mongo service used for instantiating the logger service which logs exceptions to the database
      * @param _loggerService - The logger service used for logging errors to the mongodb database
      */
     public constructor(
         _psqlService: PSqlService,
-        _loggerService: LoggerService,
+        _mongoService: MongoService,
         _encryptionService: EncryptionService,
     ) {
         super(undefined, "notification");
         this.psqlClient = _psqlService;
-        this.loggerService = _loggerService;
+        this.loggerService = new LoggerService(_mongoService);
         this.notificationService = new NotificationService(this.psqlClient);
         this.encryptionService = _encryptionService;
 

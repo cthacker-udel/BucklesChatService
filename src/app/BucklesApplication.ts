@@ -13,6 +13,7 @@ import session from "express-session";
 import { EncryptionService } from "../services/encryption/EncryptionService";
 import cookieParser from "cookie-parser";
 import { EmailService } from "../services/email/EmailService";
+import { NotificationController } from "../controllers/notification/NofiticationController";
 
 export class BucklesApplication implements IBucklesApplication {
     /**
@@ -56,6 +57,12 @@ export class BucklesApplication implements IBucklesApplication {
             encryptionService,
         );
 
+        const notificationController = new NotificationController(
+            psqlService,
+            mongoService,
+            encryptionService,
+        );
+
         this.app.use(morgan("dev"));
         this.app.use(cookieParser());
         this.app.use(express.json());
@@ -70,6 +77,7 @@ export class BucklesApplication implements IBucklesApplication {
         this.app.use(userController.generateRouter());
         this.app.use(friendController.generateRouter());
         this.app.use(messageController.generateRouter());
+        this.app.use(notificationController.generateRouter());
         this.app.listen(process.env.PORT, () => {
             console.log(`Listening on port ${process.env.PORT}`);
         });

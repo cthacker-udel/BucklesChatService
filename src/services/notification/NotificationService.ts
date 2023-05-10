@@ -40,11 +40,16 @@ export class NotificationService implements INotificationService {
     };
 
     /** @inheritdoc */
-    public removeNotification = async (id: number): Promise<boolean> => {
+    public removeNotification = async (
+        id: string,
+        notificationId: number,
+    ): Promise<ApiResponse<boolean>> => {
         const removedNotification =
-            await this.psqlClient.notificationRepo.destroy({ where: { id } });
+            await this.psqlClient.notificationRepo.destroy({
+                where: { id: notificationId },
+            });
 
-        return removedNotification > 0;
+        return new ApiResponse(id, removedNotification > 0);
     };
 
     /** @inheritdoc */

@@ -74,6 +74,17 @@ export class NotificationController
             BucklesRouteType.GET,
         );
 
+        super.addRoutes(
+            [
+                {
+                    endpoint: "remove",
+                    handler: this.removeNotification,
+                    middleware: [authToken],
+                },
+            ],
+            BucklesRouteType.DELETE,
+        );
+
         super.setStatusFunction(() => {
             if (!this.psqlClient.connected) {
                 throw new Error("PSQL client is disconnected");
@@ -108,6 +119,54 @@ export class NotificationController
             );
 
             response.status(200);
+            response.send(result);
+        } catch (error: unknown) {
+            await this.loggerService.LogException(
+                id,
+                exceptionToExceptionLog(error, id),
+            );
+            response.status(500);
+            response.send(
+                new ApiResponse(id).setApiError(
+                    new ApiErrorInfo(id).initException(error),
+                ),
+            );
+        }
+    };
+
+    /** @inheritdoc */
+    public removeNotification = async (
+        request: Request,
+        response: Response,
+    ): Promise<void> => {
+        let id = "";
+        try {
+            id = getIdFromRequest(request);
+
+            const userId = this.encryptionService.getUserIdFromRequest(request);
+
+            if (userId === undefined) {
+                throw new Error(
+                    "Must supply user token when removing notification",
+                );
+            }
+
+            const notificationId = request.query.notificationId;
+
+            if (notificationId === undefined) {
+                throw new Error(
+                    "Must supply notification id when requesting to delete notification",
+                );
+            }
+
+            const result = await this.notificationService.removeNotification(
+                id,
+                Number.parseInt(notificationId as string, 10),
+            );
+
+            const { data } = result;
+
+            response.status(data ?? false ? 200 : 400);
             response.send(result);
         } catch (error: unknown) {
             await this.loggerService.LogException(

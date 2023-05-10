@@ -12,4 +12,16 @@ export interface INotificationController {
         _request: Request,
         _response: Response,
     ) => Promise<void>;
+
+    /**
+     * Removes a notification from the database
+     *
+     * @param _request - The client request
+     * @param _response - The client response
+     * @returns Whether the notification was removed
+     */
+    removeNotification: (
+        _request: Request,
+        _response: Response,
+    ) => Promise<void>;
 }

@@ -492,8 +492,8 @@ export class FriendService implements IFriendService {
         });
 
         await this.notificationService.addNotification(
-            userIdFrom,
             userIdTo,
+            userIdFrom,
             NotificationType.REJECTED_FRIEND_REQUEST,
         );
 
@@ -525,8 +525,8 @@ export class FriendService implements IFriendService {
         });
 
         await this.notificationService.addNotification(
-            userIdFrom,
             userIdTo,
+            userIdFrom,
             NotificationType.REMOVED_FRIEND,
         );
 

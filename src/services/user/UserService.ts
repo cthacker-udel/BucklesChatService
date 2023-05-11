@@ -250,8 +250,6 @@ export class UserService implements IUserService {
                 userId,
             );
 
-            console.log(updatedUserState, clearedUserState);
-
             return (updatedUserState > 0 && clearedUserState) ?? false;
         } catch {
             // Disregard error, return that logout failed

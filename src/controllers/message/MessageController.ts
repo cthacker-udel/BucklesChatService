@@ -133,7 +133,7 @@ export class MessageController
                     middleware: [authToken],
                 },
                 {
-                    endpoint: "chatroom/add",
+                    endpoint: "chatroom/create",
                     handler: this.createChatRoom,
                     middleware: [authToken],
                 },

@@ -204,6 +204,14 @@ export class MessageService implements IMessageService {
             { where: { id: messageId } },
         );
 
+        if (doesMessageExist.receiver !== undefined) {
+            await this.notificationService.addNotification(
+                doesMessageExist.sender,
+                doesMessageExist.receiver,
+                NotificationType.SENDING_MESSAGE,
+            );
+        }
+
         return new ApiResponse<boolean>(id, updated > 0);
     };
 

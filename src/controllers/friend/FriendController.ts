@@ -18,6 +18,7 @@ import { FriendRequestPayload } from "./DTO/FriendRequestPayload";
 import { FriendPayload } from "./DTO/FriendPayload";
 import { authToken } from "../../middleware/authtoken/authtoken";
 import { EncryptionService } from "../../services/encryption/EncryptionService";
+import { NotificationService } from "../../services/notification/NotificationService";
 
 export class FriendController
     extends BaseController
@@ -54,6 +55,11 @@ export class FriendController
     private readonly encryptionService: EncryptionService;
 
     /**
+     * Service used for adding notifications to the database
+     */
+    private readonly notificationService: NotificationService;
+
+    /**
      * No-arg constructor, whose purpose is to initialize the psql instance
      */
     public constructor(
@@ -68,6 +74,14 @@ export class FriendController
         this.psqlClient = _psqlService;
         this.redisService = _redisService;
         this.encryptionService = _encryptionService;
+        this.notificationService = new NotificationService(this.psqlClient);
+
+        this.friendService = new FriendService(
+            this.psqlClient,
+            this.loggerService,
+            this.redisService,
+            this.notificationService,
+        );
 
         super.addRoutes(
             [
@@ -121,12 +135,6 @@ export class FriendController
                 throw new Error("Logger Controller is not connected");
             }
         });
-
-        this.friendService = new FriendService(
-            this.psqlClient,
-            this.loggerService,
-            this.redisService,
-        );
     }
 
     /** @inheritdoc */

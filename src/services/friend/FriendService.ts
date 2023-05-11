@@ -448,8 +448,8 @@ export class FriendService implements IFriendService {
         });
 
         await this.notificationService.addNotification(
-            userIdFrom,
             userIdTo,
+            userIdFrom,
             NotificationType.ACCEPTED_FRIEND_REQUEST,
         );
 

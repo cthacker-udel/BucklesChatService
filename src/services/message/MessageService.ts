@@ -567,7 +567,11 @@ export class MessageService implements IMessageService {
         allChatRoomMessages.forEach((eachMessage: Message) => {
             senderProfilePicturesPromises.push(
                 this.psqlClient.userRepo.findOne({
-                    attributes: [["profile_image_url", "profileImageUrl"]],
+                    attributes: [
+                        ["profile_image_url", "profileImageUrl"],
+                        "username",
+                        "handle",
+                    ],
                     where: { id: eachMessage.sender },
                 }),
             );
@@ -577,10 +581,23 @@ export class MessageService implements IMessageService {
             senderProfilePicturesPromises,
         );
 
-        const senderProfilePictures: (string | undefined)[] =
-            senderProfilePictureResponses.map(
-                (eachSender) => eachSender?.profileImageUrl,
-            );
+        const senderInformation = (
+            senderProfilePictureResponses.filter(
+                (eachSender: User | null) => eachSender !== null,
+            ) as User[]
+        ).map(
+            (eachUser: User) =>
+                ({
+                    senderHandle: eachUser.handle,
+                    senderProfilePictureUrl: eachUser.profileImageUrl,
+                    senderUsername: eachUser.username,
+                } as Pick<
+                    ChatRoomMessage,
+                    | "senderHandle"
+                    | "senderProfilePictureUrl"
+                    | "senderUsername"
+                >),
+        );
 
         const convertedMessages: ChatRoomMessage[] = allChatRoomMessages.map(
             (eachMessage: Message, eachMessageIndex: number) => {
@@ -589,8 +606,13 @@ export class MessageService implements IMessageService {
                     content,
                     createdAt,
                     sender,
+                    senderHandle:
+                        senderInformation[eachMessageIndex].senderHandle,
                     senderProfilePictureUrl:
-                        senderProfilePictures[eachMessageIndex],
+                        senderInformation[eachMessageIndex]
+                            .senderProfilePictureUrl,
+                    senderUsername:
+                        senderInformation[eachMessageIndex].senderUsername,
                 };
             },
         );

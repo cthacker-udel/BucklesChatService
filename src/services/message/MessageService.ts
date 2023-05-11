@@ -276,6 +276,7 @@ export class MessageService implements IMessageService {
                                 "id",
                                 ["profile_image_url", "profileImageUrl"],
                                 "username",
+                                "handle",
                             ],
                             where: { id: eachThread.creator },
                         }),
@@ -289,10 +290,12 @@ export class MessageService implements IMessageService {
                                 "id",
                                 ["profile_image_url", "profileImageUrl"],
                                 "username",
+                                "handle",
                             ],
                             where: { id: eachThread.receiver },
                         }),
                     );
+                    recordedUserIds.add(eachThread.receiver);
                 }
             }
         });
@@ -306,11 +309,14 @@ export class MessageService implements IMessageService {
 
         const allUserUsernameMap: { [key: number]: string } = {};
 
+        const allUserHandleMap: { [key: number]: string | undefined } = {};
+
         allUserProfileImages.forEach((eachUser: User | null) => {
             if (eachUser !== null) {
                 allUserProfileImagesMap[eachUser.id as number] =
                     eachUser.profileImageUrl;
                 allUserUsernameMap[eachUser.id as number] = eachUser.username;
+                allUserHandleMap[eachUser.id as number] = eachUser.handle;
             }
         });
 
@@ -351,6 +357,8 @@ export class MessageService implements IMessageService {
                 (_, index: number) =>
                     ({
                         creator: allThreads[index].creator,
+                        creatorHandle:
+                            allUserHandleMap[allThreads[index].creator],
                         creatorProfilePictureUrl:
                             allUserProfileImagesMap[allThreads[index].creator],
                         creatorUsername:
@@ -359,14 +367,20 @@ export class MessageService implements IMessageService {
                             (eachMessage: Message | null) =>
                                 ({
                                     ...eachMessage?.dataValues,
+                                    senderHandle:
+                                        allUserHandleMap[eachMessage!.sender],
                                     senderProfilePictureUrl:
                                         allUserProfileImagesMap[
                                             eachMessage!.sender
                                         ],
+                                    senderUsername:
+                                        allUserUsernameMap[eachMessage!.sender],
                                     thread: allThreads[index].id,
                                 } as ThreadMessage),
                         ),
                         receiver: allThreads[index].receiver,
+                        receiverHandle:
+                            allUserHandleMap[allThreads[index].receiver],
                         receiverProfilePictureUrl:
                             allUserProfileImagesMap[allThreads[index].receiver],
                         receiverUsername:

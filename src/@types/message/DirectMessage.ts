@@ -4,5 +4,7 @@ export type DirectMessage = {
     id: number;
     receiver: number;
     sender: number;
+    senderUsername?: string;
+    senderHandle?: string;
     senderProfilePictureUrl?: string;
 };

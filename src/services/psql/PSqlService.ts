@@ -8,6 +8,7 @@ import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { Message } from "../../models/sequelize/Message";
 import { Thread } from "../../models/sequelize/Thread";
 import { ActiveStatusType } from "../../@types/user/ActiveStatus";
+import { Notification } from "../../models/sequelize/Notification";
 
 export class PSqlService {
     public sqlize: Sequelize;
@@ -19,6 +20,7 @@ export class PSqlService {
     public chatRoomRepo: ModelStatic<ChatRoom>;
     public messageRepo: ModelStatic<Message>;
     public threadRepo: ModelStatic<Thread>;
+    public notificationRepo: ModelStatic<Notification>;
 
     public constructor() {
         this.sqlize = new Sequelize(
@@ -421,6 +423,42 @@ export class PSqlService {
             {
                 sequelize: this.sqlize,
                 tableName: "bucklesthreads",
+                timestamps: true,
+                underscored: true,
+            },
+        );
+        this.notificationRepo = Notification.init(
+            {
+                createdAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
+                id: {
+                    allowNull: false,
+                    autoIncrement: true,
+                    primaryKey: true,
+                    type: DataTypes.INTEGER,
+                },
+                notificationType: {
+                    allowNull: false,
+                    type: DataTypes.INTEGER,
+                },
+                receiver: {
+                    allowNull: false,
+                    type: DataTypes.INTEGER,
+                },
+                sender: {
+                    allowNull: false,
+                    type: DataTypes.INTEGER,
+                },
+                updatedAt: {
+                    allowNull: false,
+                    type: DataTypes.DATE,
+                },
+            },
+            {
+                sequelize: this.sqlize,
+                tableName: "bucklesnotifications",
                 timestamps: true,
                 underscored: true,
             },

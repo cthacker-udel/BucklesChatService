@@ -14,6 +14,8 @@ import { DirectMessagePayload } from "../../controllers/friend/DTO/DirectMessage
 import { ChatRoom } from "../../models/sequelize/ChatRoom";
 import { ChatRoomStats } from "../../controllers/message/chatroomDTO/ChatRoomStats";
 import { ChatRoomMessage } from "../../@types/message/ChatRoomMessage";
+import { NotificationService } from "../notification/NotificationService";
+import { NotificationType } from "../../models/sequelize/Notification";
 
 export class MessageService implements IMessageService {
     /**
@@ -22,12 +24,21 @@ export class MessageService implements IMessageService {
     private readonly psqlClient: PSqlService;
 
     /**
+     * Service for adding/removing notifications
+     */
+    private readonly notificationService: NotificationService;
+
+    /**
      * 1-arg constructor, instances of all necessary services are passed in
      *
      * @param _psqlService - The psql service
      */
-    constructor(_psqlService: PSqlService) {
+    constructor(
+        _psqlService: PSqlService,
+        _notificationService: NotificationService,
+    ) {
         this.psqlClient = _psqlService;
+        this.notificationService = _notificationService;
     }
 
     /** @inheritdoc */
@@ -193,6 +204,14 @@ export class MessageService implements IMessageService {
             { where: { id: messageId } },
         );
 
+        if (doesMessageExist.receiver !== undefined) {
+            await this.notificationService.addNotification(
+                doesMessageExist.sender,
+                doesMessageExist.receiver,
+                NotificationType.SENDING_MESSAGE,
+            );
+        }
+
         return new ApiResponse<boolean>(id, updated > 0);
     };
 
@@ -257,6 +276,7 @@ export class MessageService implements IMessageService {
                                 "id",
                                 ["profile_image_url", "profileImageUrl"],
                                 "username",
+                                "handle",
                             ],
                             where: { id: eachThread.creator },
                         }),
@@ -270,10 +290,12 @@ export class MessageService implements IMessageService {
                                 "id",
                                 ["profile_image_url", "profileImageUrl"],
                                 "username",
+                                "handle",
                             ],
                             where: { id: eachThread.receiver },
                         }),
                     );
+                    recordedUserIds.add(eachThread.receiver);
                 }
             }
         });
@@ -287,11 +309,14 @@ export class MessageService implements IMessageService {
 
         const allUserUsernameMap: { [key: number]: string } = {};
 
+        const allUserHandleMap: { [key: number]: string | undefined } = {};
+
         allUserProfileImages.forEach((eachUser: User | null) => {
             if (eachUser !== null) {
                 allUserProfileImagesMap[eachUser.id as number] =
                     eachUser.profileImageUrl;
                 allUserUsernameMap[eachUser.id as number] = eachUser.username;
+                allUserHandleMap[eachUser.id as number] = eachUser.handle;
             }
         });
 
@@ -332,6 +357,8 @@ export class MessageService implements IMessageService {
                 (_, index: number) =>
                     ({
                         creator: allThreads[index].creator,
+                        creatorHandle:
+                            allUserHandleMap[allThreads[index].creator],
                         creatorProfilePictureUrl:
                             allUserProfileImagesMap[allThreads[index].creator],
                         creatorUsername:
@@ -340,14 +367,20 @@ export class MessageService implements IMessageService {
                             (eachMessage: Message | null) =>
                                 ({
                                     ...eachMessage?.dataValues,
+                                    senderHandle:
+                                        allUserHandleMap[eachMessage!.sender],
                                     senderProfilePictureUrl:
                                         allUserProfileImagesMap[
                                             eachMessage!.sender
                                         ],
+                                    senderUsername:
+                                        allUserUsernameMap[eachMessage!.sender],
                                     thread: allThreads[index].id,
                                 } as ThreadMessage),
                         ),
                         receiver: allThreads[index].receiver,
+                        receiverHandle:
+                            allUserHandleMap[allThreads[index].receiver],
                         receiverProfilePictureUrl:
                             allUserProfileImagesMap[allThreads[index].receiver],
                         receiverUsername:
@@ -548,7 +581,11 @@ export class MessageService implements IMessageService {
         allChatRoomMessages.forEach((eachMessage: Message) => {
             senderProfilePicturesPromises.push(
                 this.psqlClient.userRepo.findOne({
-                    attributes: [["profile_image_url", "profileImageUrl"]],
+                    attributes: [
+                        ["profile_image_url", "profileImageUrl"],
+                        "username",
+                        "handle",
+                    ],
                     where: { id: eachMessage.sender },
                 }),
             );
@@ -558,10 +595,23 @@ export class MessageService implements IMessageService {
             senderProfilePicturesPromises,
         );
 
-        const senderProfilePictures: (string | undefined)[] =
-            senderProfilePictureResponses.map(
-                (eachSender) => eachSender?.profileImageUrl,
-            );
+        const senderInformation = (
+            senderProfilePictureResponses.filter(
+                (eachSender: User | null) => eachSender !== null,
+            ) as User[]
+        ).map(
+            (eachUser: User) =>
+                ({
+                    senderHandle: eachUser.handle,
+                    senderProfilePictureUrl: eachUser.profileImageUrl,
+                    senderUsername: eachUser.username,
+                } as Pick<
+                    ChatRoomMessage,
+                    | "senderHandle"
+                    | "senderProfilePictureUrl"
+                    | "senderUsername"
+                >),
+        );
 
         const convertedMessages: ChatRoomMessage[] = allChatRoomMessages.map(
             (eachMessage: Message, eachMessageIndex: number) => {
@@ -570,8 +620,13 @@ export class MessageService implements IMessageService {
                     content,
                     createdAt,
                     sender,
+                    senderHandle:
+                        senderInformation[eachMessageIndex].senderHandle,
                     senderProfilePictureUrl:
-                        senderProfilePictures[eachMessageIndex],
+                        senderInformation[eachMessageIndex]
+                            .senderProfilePictureUrl,
+                    senderUsername:
+                        senderInformation[eachMessageIndex].senderUsername,
                 };
             },
         );
@@ -627,6 +682,14 @@ export class MessageService implements IMessageService {
             sender: senderUser.id,
             thread: createdOrFoundThread.id,
         });
+
+        if (messageResult !== null) {
+            await this.notificationService.addNotification(
+                senderUser.id,
+                receiverUser.id,
+                NotificationType.SENDING_MESSAGE,
+            );
+        }
 
         await this.addMessageToThread(
             id,
